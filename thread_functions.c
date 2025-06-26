@@ -1,5 +1,6 @@
-#include "data_structures.c"
+#include "data_structures.h"
 
+//prolly don't want seperate thread functions for recieve and send tbh, seems useless
 void* send_to_client(void *arg) {
     
     message_s* message_to_send = (message_s*) arg;
@@ -33,6 +34,8 @@ void* recieve_from_client(void *arg) {
 
     message_to_recieve->curr_pointer += recieve;
     message_to_recieve->arr[message_to_recieve->curr_pointer] = '\0';
+
+    print_data(message_to_recieve);
 
     int *ret = malloc(sizeof *ret);
     *ret = recieve;

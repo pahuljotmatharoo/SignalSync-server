@@ -12,6 +12,7 @@
 //we need a better way of doing join, even though it might not even be needed, as we are not returning any value from the connection
 
 int main(int argc, char **argv) {
+
     //create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -32,6 +33,7 @@ int main(int argc, char **argv) {
     init_user_list(client_list);
 
     while (1) {
+        //this is storing the clients information
         struct sockaddr_in client;
         socklen_t client_len = sizeof(client);
         int new_sock = accept(sock, (struct sockaddr*)&client, &client_len);
@@ -40,7 +42,8 @@ int main(int argc, char **argv) {
             perror("accept");
             continue;
         }
-        //set up the new user
+
+        //set up the new user (should get cleaned by the destructor)
         user *new_user = malloc(sizeof(user));
         pthread_t id;
         new_user->client = client;
@@ -51,14 +54,21 @@ int main(int argc, char **argv) {
         //add new user to the list
         insert_user(client_list, new_user);
 
+        //print the list of current clients connected
+        print_client_list(client_list);
+
         //create the thread to run for the user
         pthread_create(&id, NULL, create_connection, new_user);
     }
+
+    //this is temporary, need a better solution
     user* temp = client_list -> head;
     while(temp != NULL) {
         pthread_join(temp->id, NULL);
         temp = temp->next;
     }
+
+    //destroy our created linked list
     destructor_user_list(client_list);
     close(sock);
 }

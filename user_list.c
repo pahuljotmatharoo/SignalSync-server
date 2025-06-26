@@ -52,3 +52,11 @@ void remove_user(user_list *a, user* client) {
         temp = temp->next;
     }
 }
+
+void print_client_list(user_list *a) {
+    user* temp = a->head;
+    while(temp != NULL) {
+        printf("%d ", temp->client.sin_addr.s_addr);
+        temp = temp -> next;
+    }
+}
