@@ -1,3 +1,5 @@
+void remove_user(user_list *a, user* client);
+
 void init_user_list(user_list *a) {
     a->head = NULL;
     a->tail = NULL;

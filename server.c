@@ -10,7 +10,6 @@
 #include "user_list.c"
 
 //we need a better way of doing join, even though it might not even be needed, as we are not returning any value from the connection
-
 int main(int argc, char **argv) {
 
     //create socket
@@ -57,8 +56,13 @@ int main(int argc, char **argv) {
         //print the list of current clients connected
         print_client_list(client_list);
 
+        //this is the thread argument
+        thread_arg *arg = malloc(sizeof(thread_arg));
+        arg->curr = new_user;
+        arg->list = client_list;
+
         //create the thread to run for the user
-        pthread_create(&id, NULL, create_connection, new_user);
+        pthread_create(&new_user->id, NULL, create_connection, arg);
     }
 
     //this is temporary, need a better solution
