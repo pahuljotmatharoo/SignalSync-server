@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include "user_list.h"
+/* implement init_user_list, destructor_user_list, … */
+
 void remove_user(user_list *a, user* client);
 
 void init_user_list(user_list *a) {

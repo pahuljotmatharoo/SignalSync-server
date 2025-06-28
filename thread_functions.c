@@ -1,4 +1,10 @@
-#include "data_structures.h"
+#include <pthread.h>
+#include <stdio.h>
+#include "thread_functions.h"
+#include "messages.h"
+#include <string.h>     /* for strcmp, strncpy */
+#include <unistd.h>     /* for close() */
+/* implement create_connection() */
 
 void *create_connection(void *arg) {
         thread_arg* curr_user = (thread_arg*)arg;
@@ -36,7 +42,6 @@ void *create_connection(void *arg) {
                 message_to_recieve->ip = a.ip;
                 print_data(message_to_recieve);
 
-
                 printf("Bytes received from the send: %d\n", recieve);
 
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find it and send it to it
@@ -44,9 +49,14 @@ void *create_connection(void *arg) {
 
                 user* temp = curr_user->list->head;
 
-                while((int)(temp ->client.sin_addr.s_addr) != a.ip) {
+                while((int)(temp ->client.sin_addr.s_addr) != a.ip && temp != NULL) {
                     temp = temp->next;
                 }
+                
+                if(temp == NULL) {
+                    continue;
+                }
+                
                 sending_sock = temp->sockid;
 
                 int sent = send(sending_sock, message_to_recieve->arr, 128, 0);

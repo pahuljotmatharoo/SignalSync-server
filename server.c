@@ -6,11 +6,12 @@
 #include <netdb.h>
 #include <unistd.h> 
 #include <string.h>
-#include "thread_functions.c"
-#include "user_list.c"
+#include "thread_functions.h"
+#include "user_list.h"
+#include "messages.h"
 
-//we need a better way of doing join, even though it might not even be needed, as we are not returning any value from the connection
-int main(int argc, char **argv) {
+//we need a better way of doing join, even though it might not Seven be needed, as we are not returning any value from the connection
+int main() {
 
     //create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
