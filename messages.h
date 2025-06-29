@@ -10,15 +10,19 @@ typedef struct message_to_recieve {
 
 //message to send to the user
 typedef struct message_to_send {
-    int socketid;
-    char *arr;
-    int *data_size;
+    char arr[128];
+    int type;
 } message_s;
 
 typedef struct message_recieved {
     char arr[128];
     int ip;
 } recieved_message;
+
+typedef struct list {
+    int size;
+    int arr[10];
+} client_list;
 
 
 #endif /* MESSAGES_H */

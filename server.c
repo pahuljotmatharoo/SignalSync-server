@@ -11,6 +11,8 @@
 #include "messages.h"
 
 //we need a better way of doing join, even though it might not Seven be needed, as we are not returning any value from the connection
+//need to add a semaphore for the linked list editing, as the threads can interrupt each other, or read unpdated values
+
 int main() {
 
     //create socket
@@ -26,7 +28,7 @@ int main() {
     bind(sock, (struct sockaddr*) &server, sizeof(server));
 
     //waiting for a connection
-    int lis = listen(sock, 25);
+    listen(sock, 25);
 
     //we're gonna need our client list
     user_list *client_list = malloc(sizeof(user_list));
