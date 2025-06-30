@@ -58,7 +58,6 @@ void *create_connection(void *arg) {
                 if(temp == NULL) {
                     continue;
                 }
-
                 int sent = send(temp->sockid, message_to_send, 132, 0);
 
                 printf("Sent to the new client: %d\n", sent);
