@@ -2,13 +2,9 @@
 #include <stdio.h>
 #include <string.h>     /* for strcmp, strncpy */
 #include <unistd.h>     /* for close() */
-<<<<<<< Updated upstream
-/* implement create_connection() */
-=======
 #include "user_list.h"
 #include "thread_functions.h"
 #include "messages.h"
->>>>>>> Stashed changes
 
 void *create_connection(void *arg) {
         thread_arg* curr_user = (thread_arg*)arg;
@@ -26,18 +22,7 @@ void *create_connection(void *arg) {
         //temp buffer
         char buf[32];
 
-<<<<<<< Updated upstream
-        char* msg = "Hello!";
-        int *size = malloc(sizeof(int));
-        *size = sizeof(msg);
-
-        //this should get free'd by the thread
-        message_r *rec = malloc(sizeof(message_r));
-        rec->socketid = curr_user->curr->sockid;
-        rec->arr = malloc(128);
-=======
         message_s *message_to_send = malloc(sizeof(message_s));
->>>>>>> Stashed changes
 
         int n; 
         while((n = recv(curr_user->curr->sockid, buf, sizeof(buf) - 1, 0)) > 0) {
@@ -47,29 +32,21 @@ void *create_connection(void *arg) {
 
             //the client is sending us information
             if(strcmp(buf, "Sending") == 0) {
-                // we need to encode the destination with the message, best way seems to be a struct right
 
                 recieved_message a;
 
-                message_r* message_to_recieve = rec;
-                int recieve = recv(message_to_recieve->socketid, &a, sizeof(a), 0);
-                
+                int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), 0);
+                             
                 //copy to the real array (its replacing the whole array)
-                strncpy(message_to_recieve->arr, a.arr, 128);
-                message_to_recieve->ip = a.ip;
-                print_data(message_to_recieve);
-
+                strncpy(message_to_send->arr, a.arr, 128);
+                print_data(message_to_send);
+                printf("\n");
                 printf("Bytes received from the send: %d\n", recieve);
 
-<<<<<<< Updated upstream
-                //so now that we have recieved the thing to send to a specific ip, we're gonna find it and send it to it
-                int sending_sock;
-=======
                 //this is the type, letting the client know we are sending a message
                 int type_of_message = 0;
                 send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
 
->>>>>>> Stashed changes
 
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
@@ -81,15 +58,11 @@ void *create_connection(void *arg) {
                 if(temp == NULL) {
                     continue;
                 }
-                
-                sending_sock = temp->sockid;
 
-                int sent = send(sending_sock, message_to_recieve->arr, 128, 0);
+                int sent = send(temp->sockid, message_to_send, 132, 0);
 
                 printf("Sent to the new client: %d\n", sent);
             }
-<<<<<<< Updated upstream
-=======
             else if(strcmp(buf, "List") == 0) {
 
                 int type_of_message = 1;
@@ -112,7 +85,6 @@ void *create_connection(void *arg) {
                 int sent = send(curr_user->curr->sockid, client_list_send, sizeof (client_list), 0);
                 int x = 5;
             }
->>>>>>> Stashed changes
             else if(strcmp(buf, "Exiting") == 0) {
                 printf("Closing Connection. \n");
                 memset(buf, 0, sizeof buf);
@@ -126,16 +98,12 @@ void *create_connection(void *arg) {
         sem_wait(&curr_user->list->sem); {
 
         remove_user((curr_user->list), (curr_user->curr));
-<<<<<<< Updated upstream
-        free(rec);
-        free(size);
-=======
 
         }sem_post(&curr_user->list->sem);
 
         print_client_list(curr_user->list);
 
->>>>>>> Stashed changes
         free(arg);
+        
         pthread_exit(NULL);
 }

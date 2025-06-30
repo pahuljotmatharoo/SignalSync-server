@@ -10,7 +10,6 @@ typedef struct user_list {
     sem_t sem;
 } user_list;
 
-/* function prototypes */
 void init_user_list(user_list *a);
 void destructor_user_list(user_list *ulist);
 void insert_user(user_list *a, user *client);

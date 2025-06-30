@@ -26,7 +26,7 @@ int main() {
     bind(sock, (struct sockaddr*) &server, sizeof(server));
 
     //waiting for a connection
-    int lis = listen(sock, 25);
+    listen(sock, 25);
 
     //we're gonna need our client list
     user_list *client_list = malloc(sizeof(user_list));
