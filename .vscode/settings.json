@@ -7,6 +7,18 @@
         "user_list.h": "c",
         "messages.h": "c",
         "socket.h": "c",
+<<<<<<< Updated upstream
         "stdlib.h": "c"
+=======
+        "stdlib.h": "c",
+        "thread_functions.h": "c",
+        "array": "c",
+        "compare": "c",
+        "functional": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
+>>>>>>> Stashed changes
     }
 }

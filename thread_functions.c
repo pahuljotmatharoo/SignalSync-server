@@ -1,19 +1,32 @@
 #include <pthread.h>
 #include <stdio.h>
-#include "thread_functions.h"
-#include "messages.h"
 #include <string.h>     /* for strcmp, strncpy */
 #include <unistd.h>     /* for close() */
+<<<<<<< Updated upstream
 /* implement create_connection() */
+=======
+#include "user_list.h"
+#include "thread_functions.h"
+#include "messages.h"
+>>>>>>> Stashed changes
 
 void *create_connection(void *arg) {
         thread_arg* curr_user = (thread_arg*)arg;
+
+        //semaphore here, so that inserting the user does not conflict between threads
+        sem_wait(&curr_user->list->sem); {
+
+        insert_user(curr_user->list, curr_user->curr);
+
+        }sem_post(&curr_user->list->sem);
+
         printf("Connection Established!\n");
-        //printf("Thread ID: %d \n", curr_user->id);
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
+        //temp buffer
         char buf[32];
 
+<<<<<<< Updated upstream
         char* msg = "Hello!";
         int *size = malloc(sizeof(int));
         *size = sizeof(msg);
@@ -22,9 +35,13 @@ void *create_connection(void *arg) {
         message_r *rec = malloc(sizeof(message_r));
         rec->socketid = curr_user->curr->sockid;
         rec->arr = malloc(128);
+=======
+        message_s *message_to_send = malloc(sizeof(message_s));
+>>>>>>> Stashed changes
 
         int n; 
         while((n = recv(curr_user->curr->sockid, buf, sizeof(buf) - 1, 0)) > 0) {
+            
             buf[n] = '\0';
             printf("Received: %s\n", buf);
 
@@ -44,9 +61,17 @@ void *create_connection(void *arg) {
 
                 printf("Bytes received from the send: %d\n", recieve);
 
+<<<<<<< Updated upstream
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find it and send it to it
                 int sending_sock;
+=======
+                //this is the type, letting the client know we are sending a message
+                int type_of_message = 0;
+                send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
 
+>>>>>>> Stashed changes
+
+                //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
 
                 while((int)(temp ->client.sin_addr.s_addr) != a.ip && temp != NULL) {
@@ -63,6 +88,31 @@ void *create_connection(void *arg) {
 
                 printf("Sent to the new client: %d\n", sent);
             }
+<<<<<<< Updated upstream
+=======
+            else if(strcmp(buf, "List") == 0) {
+
+                int type_of_message = 1;
+                send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+                client_list* client_list_send = malloc(sizeof (client_list));
+                client_list_send->size = curr_user->list->size;
+
+                user* temp_node = curr_user->list->head;
+
+                for(int i = 0; i < curr_user->list->size; i++) {
+                    client_list_send->arr[i] = temp_node->client.sin_addr.s_addr;
+                    temp_node = temp_node->next;
+                }
+
+                for(int i = curr_user->list->size; i < 10; i++) {
+                    client_list_send->arr[i] = 0;
+                }
+
+                int sent = send(curr_user->curr->sockid, client_list_send, sizeof (client_list), 0);
+                int x = 5;
+            }
+>>>>>>> Stashed changes
             else if(strcmp(buf, "Exiting") == 0) {
                 printf("Closing Connection. \n");
                 memset(buf, 0, sizeof buf);
@@ -71,9 +121,21 @@ void *create_connection(void *arg) {
             memset(buf, 0, sizeof buf);
         }
         close(curr_user->curr->sockid);
+
+        //semaphore here
+        sem_wait(&curr_user->list->sem); {
+
         remove_user((curr_user->list), (curr_user->curr));
+<<<<<<< Updated upstream
         free(rec);
         free(size);
+=======
+
+        }sem_post(&curr_user->list->sem);
+
+        print_client_list(curr_user->list);
+
+>>>>>>> Stashed changes
         free(arg);
         pthread_exit(NULL);
 }

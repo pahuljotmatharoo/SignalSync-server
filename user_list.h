@@ -1,11 +1,13 @@
 #ifndef USER_LIST_H
 #define USER_LIST_H
 #include "user.h"
+#include <semaphore.h>
 
 typedef struct user_list {
     user *head;
     user *tail;
     int   size;
+    sem_t sem;
 } user_list;
 
 /* function prototypes */
