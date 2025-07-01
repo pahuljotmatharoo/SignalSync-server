@@ -11,7 +11,6 @@ typedef struct message_to_recieve {
 //message to send to the user
 typedef struct message_to_send {
     char arr[128];
-    int type;
 } message_s;
 
 typedef struct message_recieved {
@@ -22,7 +21,8 @@ typedef struct message_recieved {
 typedef struct list {
     int size;
     int arr[10];
-} client_list;
+} client_list_s;
 
+void print_data(message_s *a);
 
 #endif /* MESSAGES_H */

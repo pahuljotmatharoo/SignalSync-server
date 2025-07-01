@@ -14,7 +14,6 @@
 //need to add a semaphore for the linked list editing, as the threads can interrupt each other, or read unpdated values
 
 int main() {
-
     //create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -54,7 +53,7 @@ int main() {
         new_user -> id = id;
 
         //print the list of current clients connected
-        print_client_list(client_list);
+        //print_client_list(client_list);
 
         //this is the thread argument, need the current user as well as the list
         thread_arg *arg = malloc(sizeof(thread_arg));

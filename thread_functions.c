@@ -16,6 +16,8 @@ void *create_connection(void *arg) {
 
         }sem_post(&curr_user->list->sem);
 
+        print_client_list(curr_user->list);
+
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
@@ -35,7 +37,7 @@ void *create_connection(void *arg) {
 
                 recieved_message a;
 
-                int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), 0);
+                int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
                              
                 //copy to the real array (its replacing the whole array)
                 strncpy(message_to_send->arr, a.arr, 128);
@@ -45,9 +47,8 @@ void *create_connection(void *arg) {
 
                 //this is the type, letting the client know we are sending a message
                 int type_of_message = 0;
-                send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
-
-
+                int x =send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
+                
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
 
@@ -58,16 +59,17 @@ void *create_connection(void *arg) {
                 if(temp == NULL) {
                     continue;
                 }
-                int sent = send(temp->sockid, message_to_send, 132, 0);
+
+                int sent = send(temp->sockid, message_to_send, 128, 0);
 
                 printf("Sent to the new client: %d\n", sent);
             }
             else if(strcmp(buf, "List") == 0) {
 
-                int type_of_message = 1;
-                send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
+                int type_of_message_list = 1;
+                send(curr_user->curr->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
 
-                client_list* client_list_send = malloc(sizeof (client_list));
+                client_list_s* client_list_send = malloc(sizeof (client_list_s));
                 client_list_send->size = curr_user->list->size;
 
                 user* temp_node = curr_user->list->head;
@@ -81,7 +83,7 @@ void *create_connection(void *arg) {
                     client_list_send->arr[i] = 0;
                 }
 
-                int sent = send(curr_user->curr->sockid, client_list_send, sizeof (client_list), 0);
+                int sent = send(curr_user->curr->sockid, client_list_send, sizeof (client_list_s), 0);
                 int x = 5;
             }
             else if(strcmp(buf, "Exiting") == 0) {
@@ -95,9 +97,7 @@ void *create_connection(void *arg) {
 
         //semaphore here
         sem_wait(&curr_user->list->sem); {
-
         remove_user((curr_user->list), (curr_user->curr));
-
         }sem_post(&curr_user->list->sem);
 
         print_client_list(curr_user->list);
