@@ -5,9 +5,30 @@
 #include "user_list.h"
 #include "thread_functions.h"
 #include "messages.h"
+#define MSG_SEND 1
+#define MSG_LIST 2
+#define MSG_EXIT 3
+
+size_t recv_exact_msg(void* buf, size_t len, int sock) {
+	recieved_message* temp = (recieved_message*)buf;
+	char* p = &(temp->arr);
+	size_t total = 0;
+	while (total < len) {
+		size_t r = recv(sock, p + total, len - total, 0);
+		if (r < 0)  return -1;   // error
+		if (r == 0)  return 0;   // peer closed
+		total += r;
+	}
+	return total;
+}
 
 void *create_connection(void *arg) {
+        int n; 
+        MsgHeader hdr;
+        int connection_check = 1;
+        message_s *message_to_send = malloc(sizeof(message_s));
         thread_arg* curr_user = (thread_arg*)arg;
+        int current_user_socket = curr_user->curr->sockid;
 
         //semaphore here, so that inserting the user does not conflict between threads
         sem_wait(&curr_user->list->sem); {
@@ -21,24 +42,22 @@ void *create_connection(void *arg) {
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
-        //temp buffer
-        char buf[32];
+        //so here, it will recieve, then execute based on the recieve, then continue again
+        while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
 
-        message_s *message_to_send = malloc(sizeof(message_s));
+            uint32_t type   = ntohl(hdr.type);
+            uint32_t length = ntohl(hdr.length);
 
-        int n; 
-        while((n = recv(curr_user->curr->sockid, buf, sizeof(buf) - 1, 0)) > 0) {
-            
-            buf[n] = '\0';
-            printf("Received: %s\n", buf);
+            printf("Received: %d\n", type);
 
             //the client is sending us information
-            if(strcmp(buf, "Sending") == 0) {
+            if(type == MSG_SEND) {
 
                 recieved_message a;
 
-                int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
-                             
+                //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
+                size_t recieve =recv_exact_msg(&a, 132, current_user_socket);
+                                    
                 //copy to the real array (its replacing the whole array)
                 strncpy(message_to_send->arr, a.arr, 128);
                 print_data(message_to_send);
@@ -46,16 +65,16 @@ void *create_connection(void *arg) {
                 printf("Bytes received from the send: %d\n", recieve);
 
                 //this is the type, letting the client know we are sending a message
-                int type_of_message = 0;
-                int x =send(curr_user->curr->sockid, &type_of_message, sizeof(type_of_message), 0);
-                
+                int type_of_message = MSG_SEND;
+                int y = send(current_user_socket, &type_of_message, sizeof(type_of_message), 0);
+                        
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
 
-                while((int)(temp ->client.sin_addr.s_addr) != a.ip && temp != NULL) {
+                while(temp != NULL && (int)(temp ->client.sin_addr.s_addr) != a.ip) {
                     temp = temp->next;
                 }
-                
+                        
                 if(temp == NULL) {
                     continue;
                 }
@@ -64,10 +83,10 @@ void *create_connection(void *arg) {
 
                 printf("Sent to the new client: %d\n", sent);
             }
-            else if(strcmp(buf, "List") == 0) {
+            else if(type == MSG_LIST) {
 
-                int type_of_message_list = 1;
-                send(curr_user->curr->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+                int type_of_message_list = MSG_LIST;
+                send(current_user_socket, &type_of_message_list, sizeof(type_of_message_list), 0);
 
                 client_list_s* client_list_send = malloc(sizeof (client_list_s));
                 client_list_send->size = curr_user->list->size;
@@ -83,15 +102,12 @@ void *create_connection(void *arg) {
                     client_list_send->arr[i] = 0;
                 }
 
-                int sent = send(curr_user->curr->sockid, client_list_send, sizeof (client_list_s), 0);
-                int x = 5;
+               int sent = send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
             }
-            else if(strcmp(buf, "Exiting") == 0) {
+            else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
-                memset(buf, 0, sizeof buf);
                 break;
             }
-            memset(buf, 0, sizeof buf);
         }
         close(curr_user->curr->sockid);
 

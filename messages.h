@@ -1,5 +1,6 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
+#include <stdint.h>
 
 //message to recieve from the user 
 typedef struct message_to_recieve {
@@ -22,6 +23,11 @@ typedef struct list {
     int size;
     int arr[10];
 } client_list_s;
+
+typedef struct Msg{
+    uint32_t type;    // message type
+    uint32_t length;  // payload length
+} MsgHeader;
 
 void print_data(message_s *a);
 
