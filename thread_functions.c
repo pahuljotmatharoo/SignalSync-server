@@ -63,10 +63,6 @@ void *create_connection(void *arg) {
                 print_data(message_to_send);
                 printf("\n");
                 printf("Bytes received from the send: %d\n", recieve);
-
-                //this is the type, letting the client know we are sending a message
-                int type_of_message = MSG_SEND;
-                int y = send(current_user_socket, &type_of_message, sizeof(type_of_message), 0);
                         
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
@@ -78,6 +74,10 @@ void *create_connection(void *arg) {
                 if(temp == NULL) {
                     continue;
                 }
+
+                //this is the type, letting the client know we are sending a message
+                int type_of_message = MSG_SEND;
+                send(temp->sockid, &type_of_message, sizeof(type_of_message), 0);
 
                 int sent = send(temp->sockid, message_to_send, 128, 0);
 
