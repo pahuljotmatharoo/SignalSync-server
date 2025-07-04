@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>     /* for strcmp, strncpy */
 #include <unistd.h>     /* for close() */
 #include "user_list.h"
@@ -15,18 +16,29 @@ size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	size_t total = 0;
 	while (total < len) {
 		size_t r = recv(sock, p + total, len - total, 0);
-		if (r < 0)  return -1;   // error
 		if (r == 0)  return 0;   // peer closed
 		total += r;
 	}
 	return total;
 }
 
+void recv_exact_username(char* temp, size_t len, int sock) {
+    size_t total = 0;
+    while(total < len) {
+        size_t r = recv(sock, temp+total, len - total, 0);
+        if (r == 0)  return 0; 
+        total += r;
+    }
+}
+
 void *create_connection(void *arg) {
+    //here we can initalize 
         int n; 
+        char temp[50];
         MsgHeader hdr;
-        int connection_check = 1;
-        message_s *message_to_send = malloc(sizeof(message_s));
+
+        message_s *message_to_send = (message_s*) malloc(sizeof(message_s));
+
         thread_arg* curr_user = (thread_arg*)arg;
         int current_user_socket = curr_user->curr->sockid;
 
@@ -41,6 +53,10 @@ void *create_connection(void *arg) {
 
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
+
+        recv_exact_username(&temp, 50, curr_user->curr->sockid);
+
+        strcpy(&(curr_user->curr->username),temp);
 
         //so here, it will recieve, then execute based on the recieve, then continue again
         while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
@@ -94,15 +110,15 @@ void *create_connection(void *arg) {
                 user* temp_node = curr_user->list->head;
 
                 for(int i = 0; i < curr_user->list->size; i++) {
-                    client_list_send->arr[i] = temp_node->client.sin_addr.s_addr;
+                    strcpy(&(client_list_send->arr[i]), &(temp_node->username));
                     temp_node = temp_node->next;
                 }
 
-                for(int i = curr_user->list->size; i < 10; i++) {
-                    client_list_send->arr[i] = 0;
-                }
+                // for(int i = curr_user->list->size; i < 10; i++) {
+                //     strcpy(&(client_list_send->arr[i]), '\0');
+                // }
 
-               int sent = send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
+               send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");

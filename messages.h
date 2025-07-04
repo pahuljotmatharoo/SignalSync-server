@@ -21,7 +21,7 @@ typedef struct message_recieved {
 
 typedef struct list {
     int size;
-    int arr[10];
+    char arr[10][50];
 } client_list_s;
 
 typedef struct Msg{

@@ -9,6 +9,7 @@ typedef struct user {
     struct sockaddr_in client;
     struct user      *next;
     int               sockid;
+    char username[50];
 } user;
 
 #endif /* USER_H */
