@@ -12,10 +12,9 @@
 
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
-	char* p = &(temp->arr);
 	size_t total = 0;
 	while (total < len) {
-		size_t r = recv(sock, p + total, len - total, 0);
+		size_t r = recv(sock, (temp) + total, len - total, 0);
 		if (r == 0)  return 0;   // peer closed
 		total += r;
 	}
@@ -26,7 +25,7 @@ void recv_exact_username(char* temp, size_t len, int sock) {
     size_t total = 0;
     while(total < len) {
         size_t r = recv(sock, temp+total, len - total, 0);
-        if (r == 0)  return 0; 
+        if (r == 0)  return; 
         total += r;
     }
 }
@@ -72,7 +71,7 @@ void *create_connection(void *arg) {
                 recieved_message a;
 
                 //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
-                size_t recieve =recv_exact_msg(&a, 132, current_user_socket);
+                size_t recieve =recv_exact_msg(&a, 178, current_user_socket);
                                     
                 //copy to the real array (its replacing the whole array)
                 strncpy(message_to_send->arr, a.arr, 128);
@@ -83,7 +82,7 @@ void *create_connection(void *arg) {
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
 
-                while(temp != NULL && (int)(temp ->client.sin_addr.s_addr) != a.ip) {
+                while(temp != NULL && strcmp(a.user_to_send, temp->username) != 0) {
                     temp = temp->next;
                 }
                         

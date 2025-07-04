@@ -16,7 +16,7 @@ typedef struct message_to_send {
 
 typedef struct message_recieved {
     char arr[128];
-    int ip;
+    char user_to_send[50];
 } recieved_message;
 
 typedef struct list {
