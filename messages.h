@@ -2,13 +2,6 @@
 #define MESSAGES_H
 #include <stdint.h>
 
-//message to recieve from the user 
-typedef struct message_to_recieve {
-    int socketid;
-    char *arr;
-    int ip;
-} message_r;
-
 //message to send to the user
 typedef struct message_to_send {
     char arr[128];
@@ -20,7 +13,7 @@ typedef struct message_recieved {
 } recieved_message;
 
 typedef struct list {
-    int size;
+    uint32_t size;
     char arr[10][50];
 } client_list_s;
 

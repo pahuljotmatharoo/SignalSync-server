@@ -116,7 +116,7 @@ void *create_connection(void *arg) {
                 // for(int i = curr_user->list->size; i < 10; i++) {
                 //     strcpy(&(client_list_send->arr[i]), '\0');
                 // }
-
+               client_list_send->size = htonl(client_list_send->size);
                send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
             }
             else if(type == MSG_EXIT) {
