@@ -41,21 +41,23 @@ void *create_connection(void *arg) {
         thread_arg* curr_user = (thread_arg*)arg;
         int current_user_socket = curr_user->curr->sockid;
 
-        //semaphore here, so that inserting the user does not conflict between threads
-        sem_wait(&curr_user->list->sem); {
+        //mutex lock
+        pthread_mutex_lock(&curr_user->list->mutex);
 
+        //critical section
         insert_user(curr_user->list, curr_user->curr);
 
-        }sem_post(&curr_user->list->sem);
+        //mutex unlock
+        pthread_mutex_unlock(&curr_user->list->mutex);
 
         print_client_list(curr_user->list);
 
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
-        recv_exact_username(&temp, 50, curr_user->curr->sockid);
+        recv_exact_username(temp, 50, curr_user->curr->sockid);
 
-        strcpy(&(curr_user->curr->username),temp);
+        strcpy((curr_user->curr->username),temp);
 
         //so here, it will recieve, then execute based on the recieve, then continue again
         while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
@@ -77,7 +79,7 @@ void *create_connection(void *arg) {
                 strncpy(message_to_send->arr, a.arr, 128);
                 print_data(message_to_send);
                 printf("\n");
-                printf("Bytes received from the send: %d\n", recieve);
+                printf("Bytes received from the send: %d\n", (int)recieve);
                         
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
                 user* temp = curr_user->list->head;
@@ -109,7 +111,7 @@ void *create_connection(void *arg) {
                 user* temp_node = curr_user->list->head;
 
                 for(int i = 0; i < curr_user->list->size; i++) {
-                    strcpy(&(client_list_send->arr[i]), &(temp_node->username));
+                    strcpy((client_list_send->arr[i]), (temp_node->username));
                     temp_node = temp_node->next;
                 }
 
@@ -126,12 +128,15 @@ void *create_connection(void *arg) {
         }
         close(curr_user->curr->sockid);
 
-        //semaphore here
-        sem_wait(&curr_user->list->sem); {
-        remove_user((curr_user->list), (curr_user->curr));
-        }sem_post(&curr_user->list->sem);
+        //mutex lock
+        pthread_mutex_lock(&curr_user->list->mutex);
 
+        //critical section
+        remove_user((curr_user->list), (curr_user->curr));
         print_client_list(curr_user->list);
+
+        //mutex unlock
+        pthread_mutex_unlock(&curr_user->list->mutex);
 
         free(arg);
         

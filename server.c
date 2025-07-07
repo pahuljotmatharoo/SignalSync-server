@@ -66,7 +66,7 @@ int main() {
         pthread_join(temp->id, NULL);
         temp = temp->next;
     }
-
+    
     //destroy our created linked list
     destructor_user_list(client_list);
     close(sock);

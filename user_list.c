@@ -2,14 +2,11 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "user_list.h"
-/* implement init_user_list, destructor_user_list, … */
-
-void remove_user(user_list *a, user* client);
 
 void init_user_list(user_list *a) {
     a->head = NULL;
     a->tail = NULL;
-    sem_init(&a->sem, 0, 1);
+    pthread_mutex_init(&a->mutex, NULL);
 }
 
 void destructor_user_list(user_list *ulist) {
@@ -20,6 +17,9 @@ void destructor_user_list(user_list *ulist) {
         cur = next;
     }
     ulist->head = NULL;
+
+    //destroy the mutex at the end
+    pthread_mutex_destroy(&(ulist->mutex));
     free(ulist);
 }
 

@@ -1,13 +1,13 @@
 #ifndef USER_LIST_H
 #define USER_LIST_H
 #include "user.h"
-#include <semaphore.h>
+#include <pthread.h>
 
 typedef struct user_list {
     user *head;
     user *tail;
     int   size;
-    sem_t sem;
+    pthread_mutex_t mutex;
 } user_list;
 
 void init_user_list(user_list *a);
