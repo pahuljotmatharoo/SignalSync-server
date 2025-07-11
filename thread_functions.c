@@ -77,6 +77,7 @@ void *create_connection(void *arg) {
                                     
                 //copy to the real array (its replacing the whole array)
                 strncpy(message_to_send->arr, a.arr, 128);
+                strncpy(message_to_send->username, curr_user->curr->username, 50);
                 print_data(message_to_send);
                 printf("\n");
                 printf("Bytes received from the send: %d\n", (int)recieve);
@@ -96,7 +97,7 @@ void *create_connection(void *arg) {
                 int type_of_message = MSG_SEND;
                 send(temp->sockid, &type_of_message, sizeof(type_of_message), 0);
 
-                int sent = send(temp->sockid, message_to_send, 128, 0);
+                int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
 
                 printf("Sent to the new client: %d\n", sent);
             }

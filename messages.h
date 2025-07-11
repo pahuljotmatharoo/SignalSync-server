@@ -5,6 +5,7 @@
 //message to send to the user
 typedef struct message_to_send {
     char arr[128];
+    char username[50];
 } message_s;
 
 typedef struct message_recieved {
