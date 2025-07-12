@@ -9,6 +9,9 @@
 #include "thread_functions.h"
 #include "user_list.h"
 #include "messages.h"
+#define MSG_SEND 1
+#define MSG_LIST 2
+#define MSG_EXIT 3
 
 //we need a better way of doing join, even though it might not Seven be needed, as we are not returning any value from the connection
 
@@ -58,7 +61,28 @@ int main() {
 
         //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
+
+        //we acc need to send the list here...
+
+        user* a = client_list->head;
+        while(a != NULL) {
+            int type_of_message_list = MSG_LIST;
+            send(a->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+            client_list_s* client_list_send = malloc(sizeof (client_list_s));
+            client_list_send->size = client_list->size;
+
+            user* temp_node = client_list->head;
+
+            for(int i = 0; i < client_list->size; i++) {
+                strcpy((client_list_send->arr[i]), (temp_node->username));
+                temp_node = temp_node->next;
+            }
+            client_list_send->size = htonl(client_list_send->size);
+            send(a->sockid, client_list_send, sizeof (client_list_s), 0);
+            a = a->next;
     }
+}
 
     //this is temporary, need a better solution
     user* temp = client_list -> head;

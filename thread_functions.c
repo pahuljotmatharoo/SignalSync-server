@@ -59,6 +59,9 @@ void *create_connection(void *arg) {
 
         strcpy((curr_user->curr->username),temp);
 
+        //send the list 
+        //send_list(curr_user, current_user_socket);
+
         //so here, it will recieve, then execute based on the recieve, then continue again
         while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
 
@@ -73,7 +76,7 @@ void *create_connection(void *arg) {
                 recieved_message a;
 
                 //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
-                size_t recieve =recv_exact_msg(&a, 178, current_user_socket);
+                size_t recieve = recv_exact_msg(&a, 178, current_user_socket);
                                     
                 //copy to the real array (its replacing the whole array)
                 strncpy(message_to_send->arr, a.arr, 128);
