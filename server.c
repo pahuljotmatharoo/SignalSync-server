@@ -54,16 +54,19 @@ int main() {
         new_user->sockid = new_sock;
         new_user -> id = id;
 
+        recv_exact_username(new_user->username, 50, new_user->sockid);
+
         //this is the thread argument, need the current user as well as the list
         thread_arg *arg = malloc(sizeof(thread_arg));
         arg->curr = new_user;
         arg->list = client_list;
 
+        insert_user(arg->list, arg->curr);
+
         //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
 
-        //we acc need to send the list here...
-
+        //list sending logic (split up into a function)
         user* a = client_list->head;
         while(a != NULL) {
             int type_of_message_list = MSG_LIST;

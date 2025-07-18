@@ -33,7 +33,6 @@ void recv_exact_username(char* temp, size_t len, int sock) {
 void *create_connection(void *arg) {
     //here we can initalize 
         int n; 
-        char temp[50];
         MsgHeader hdr;
 
         message_s *message_to_send = (message_s*) malloc(sizeof(message_s));
@@ -42,22 +41,22 @@ void *create_connection(void *arg) {
         int current_user_socket = curr_user->curr->sockid;
 
         //mutex lock
-        pthread_mutex_lock(&curr_user->list->mutex);
+        //  pthread_mutex_lock(&curr_user->list->mutex);
 
-        //critical section
-        insert_user(curr_user->list, curr_user->curr);
+        // // //critical section
+        // insert_user(curr_user->list, curr_user->curr);
 
-        //mutex unlock
-        pthread_mutex_unlock(&curr_user->list->mutex);
+        // // //mutex unlock
+        // pthread_mutex_unlock(&curr_user->list->mutex);
 
         print_client_list(curr_user->list);
 
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
-        recv_exact_username(temp, 50, curr_user->curr->sockid);
+        //recv_exact_username(temp, 50, curr_user->curr->sockid);
 
-        strcpy((curr_user->curr->username),temp);
+        //strcpy((curr_user->curr->username),temp);
 
         //send the list 
         //send_list(curr_user, current_user_socket);
