@@ -9,6 +9,7 @@
 #define MSG_SEND 1
 #define MSG_LIST 2
 #define MSG_EXIT 3
+#define USER_EXIT 4
 
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
@@ -30,6 +31,28 @@ void recv_exact_username(char* temp, size_t len, int sock) {
     }
 }
 
+void send_list(user_list* client_list) {
+    user* temp = client_list->head;
+    while(temp != NULL) {
+            int type_of_message_list = MSG_LIST;
+            send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+            client_list_s* client_list_send = malloc(sizeof (client_list_s));
+            client_list_send->size = client_list->size;
+
+            user* temp_node = client_list->head;
+
+            for(int i = 0; i < client_list->size; i++) {
+                strcpy((client_list_send->arr[i]), (temp_node->username));
+                temp_node = temp_node->next;
+            }
+
+            client_list_send->size = htonl(client_list_send->size);
+            send(temp->sockid, client_list_send, sizeof (client_list_s), 0);
+            temp = temp->next;
+    }
+}
+
 void *create_connection(void *arg) {
     //here we can initalize 
         int n; 
@@ -40,26 +63,12 @@ void *create_connection(void *arg) {
         thread_arg* curr_user = (thread_arg*)arg;
         int current_user_socket = curr_user->curr->sockid;
 
-        //mutex lock
-        //  pthread_mutex_lock(&curr_user->list->mutex);
-
-        // // //critical section
-        // insert_user(curr_user->list, curr_user->curr);
-
-        // // //mutex unlock
-        // pthread_mutex_unlock(&curr_user->list->mutex);
-
-        print_client_list(curr_user->list);
+        pthread_mutex_lock(curr_user->mutex);
+        print_client_list(curr_user->list_of_users);
+        pthread_mutex_unlock(curr_user->mutex);
 
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
-
-        //recv_exact_username(temp, 50, curr_user->curr->sockid);
-
-        //strcpy((curr_user->curr->username),temp);
-
-        //send the list 
-        //send_list(curr_user, current_user_socket);
 
         //so here, it will recieve, then execute based on the recieve, then continue again
         while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
@@ -85,7 +94,7 @@ void *create_connection(void *arg) {
                 printf("Bytes received from the send: %d\n", (int)recieve);
                         
                 //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
-                user* temp = curr_user->list->head;
+                user* temp = curr_user->list_of_users->head;
 
                 while(temp != NULL && strcmp(a.user_to_send, temp->username) != 0) {
                     temp = temp->next;
@@ -104,23 +113,20 @@ void *create_connection(void *arg) {
                 printf("Sent to the new client: %d\n", sent);
             }
             else if(type == MSG_LIST) {
-
+                //this can be replaced with the list function (prob not needed)
                 int type_of_message_list = MSG_LIST;
                 send(current_user_socket, &type_of_message_list, sizeof(type_of_message_list), 0);
 
                 client_list_s* client_list_send = malloc(sizeof (client_list_s));
-                client_list_send->size = curr_user->list->size;
+                client_list_send->size = curr_user->list_of_users->size;
 
-                user* temp_node = curr_user->list->head;
+                user* temp_node = curr_user->list_of_users->head;
 
-                for(int i = 0; i < curr_user->list->size; i++) {
+                for(int i = 0; i < curr_user->list_of_users->size; i++) {
                     strcpy((client_list_send->arr[i]), (temp_node->username));
                     temp_node = temp_node->next;
                 }
 
-                // for(int i = curr_user->list->size; i < 10; i++) {
-                //     strcpy(&(client_list_send->arr[i]), '\0');
-                // }
                client_list_send->size = htonl(client_list_send->size);
                send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
             }
@@ -131,15 +137,21 @@ void *create_connection(void *arg) {
         }
         close(curr_user->curr->sockid);
 
-        //mutex lock
-        pthread_mutex_lock(&curr_user->list->mutex);
+        pthread_mutex_lock(curr_user->mutex);
 
-        //critical section
-        remove_user((curr_user->list), (curr_user->curr));
-        print_client_list(curr_user->list);
+        remove_user((curr_user->list_of_users), (curr_user->curr));
 
-        //mutex unlock
-        pthread_mutex_unlock(&curr_user->list->mutex);
+        user* temp = curr_user->list_of_users->head;
+        while(temp != NULL) {
+            int type_of_message_list = USER_EXIT;
+            send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+            send(temp->sockid, curr_user->curr->username, sizeof(curr_user->curr->username), 0);
+
+            temp = temp->next;
+        }
+
+        pthread_mutex_unlock(curr_user->mutex);
 
         free(arg);
         

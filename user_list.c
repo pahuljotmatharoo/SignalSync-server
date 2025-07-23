@@ -6,7 +6,6 @@
 void init_user_list(user_list *a) {
     a->head = NULL;
     a->tail = NULL;
-    pthread_mutex_init(&a->mutex, NULL);
 }
 
 void destructor_user_list(user_list *ulist) {
@@ -17,9 +16,6 @@ void destructor_user_list(user_list *ulist) {
         cur = next;
     }
     ulist->head = NULL;
-
-    //destroy the mutex at the end
-    pthread_mutex_destroy(&(ulist->mutex));
     free(ulist);
 }
 
@@ -41,17 +37,20 @@ void insert_user(user_list *a, user* client) {
 //just removes the client from the list of current clients when they disconnect
 void remove_user(user_list *a, user* client) {
     user* temp = a->head;
-    if(temp == client) {
+    if (temp == client) {
         a->head = a->head->next;
-        if(a->tail == temp) {
+        if (a->tail == temp) {
             a->tail = a->head;
         }
         free(temp);
         a->size--;
         return;
     }
-    while(temp->next != NULL) {
-        if(temp->next == client) {
+    while (temp->next != NULL) {
+        if (temp->next == client) {
+            if (temp->next == a->tail) {
+                a->tail = temp;
+            }
             user* temp_new = temp->next->next;
             free(temp->next);
             temp->next = temp_new;
@@ -61,6 +60,7 @@ void remove_user(user_list *a, user* client) {
         temp = temp->next;
     }
 }
+
 
 void print_client_list(user_list *a) {
     user* temp = a->head;
