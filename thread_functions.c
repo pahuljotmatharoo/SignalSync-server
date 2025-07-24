@@ -10,6 +10,8 @@
 #define MSG_LIST 2
 #define MSG_EXIT 3
 #define USER_EXIT 4
+#define username_length 50
+#define message_length 128
 
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
@@ -84,11 +86,11 @@ void *create_connection(void *arg) {
                 recieved_message a;
 
                 //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
-                size_t recieve = recv_exact_msg(&a, 178, current_user_socket);
+                size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
                                     
                 //copy to the real array (its replacing the whole array)
-                strncpy(message_to_send->arr, a.arr, 128);
-                strncpy(message_to_send->username, curr_user->curr->username, 50);
+                strncpy(message_to_send->arr, a.arr, message_length);
+                strncpy(message_to_send->username, curr_user->curr->username, username_length);
                 print_data(message_to_send);
                 printf("\n");
                 printf("Bytes received from the send: %d\n", (int)recieve);
@@ -111,24 +113,6 @@ void *create_connection(void *arg) {
                 int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
 
                 printf("Sent to the new client: %d\n", sent);
-            }
-            else if(type == MSG_LIST) {
-                //this can be replaced with the list function (prob not needed)
-                int type_of_message_list = MSG_LIST;
-                send(current_user_socket, &type_of_message_list, sizeof(type_of_message_list), 0);
-
-                client_list_s* client_list_send = malloc(sizeof (client_list_s));
-                client_list_send->size = curr_user->list_of_users->size;
-
-                user* temp_node = curr_user->list_of_users->head;
-
-                for(int i = 0; i < curr_user->list_of_users->size; i++) {
-                    strcpy((client_list_send->arr[i]), (temp_node->username));
-                    temp_node = temp_node->next;
-                }
-
-               client_list_send->size = htonl(client_list_send->size);
-               send(current_user_socket, client_list_send, sizeof (client_list_s), 0);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");

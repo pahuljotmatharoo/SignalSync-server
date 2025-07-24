@@ -12,6 +12,7 @@
 #define MSG_SEND 1
 #define MSG_LIST 2
 #define MSG_EXIT 3
+#define username_length 50
 //we need a better way of doing join, even though it might not Seven be needed, as we are not returning any value from the connection
 
 int main() {
@@ -54,7 +55,7 @@ int main() {
         new_user->sockid = new_sock;
         new_user -> id = id;
 
-        recv_exact_username(new_user->username, 50, new_user->sockid);
+        recv_exact_username(new_user->username, username_length, new_user->sockid);
 
         //this is the thread argument, need the current user as well as the list
         thread_arg *arg = malloc(sizeof(thread_arg));
