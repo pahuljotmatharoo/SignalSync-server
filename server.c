@@ -69,16 +69,10 @@ int main() {
 
         //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
+        pthread_detach(&new_user->id);
         send_list(client_list);
         pthread_mutex_unlock(&mutex);
 }
-
-    //this is temporary, need a better solution
-    user* temp = client_list -> head;
-    while(temp != NULL) {
-        pthread_join(temp->id, NULL);
-        temp = temp->next;
-    }
     
     //destroy our created linked list
     destructor_user_list(client_list);
