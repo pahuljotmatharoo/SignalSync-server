@@ -80,7 +80,7 @@ int main() {
 
         pthread_mutex_unlock(&mutex);
 }
-    
+
     //destroy our created linked list
     destructor_user_list(client_list);
     //destroy out mutex

@@ -15,6 +15,7 @@
                 "${workspaceFolder}/thread_functions.c",
                 "${workspaceFolder}/user_list.c",
                 "${workspaceFolder}/messages.c",
+                "${workspaceFolder}/chat_room_list.c",
                 "-o",
                 "${workspaceFolder}/server"
             ],
