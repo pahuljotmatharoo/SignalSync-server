@@ -10,6 +10,7 @@
 #define MSG_LIST 2
 #define MSG_EXIT 3
 #define USER_EXIT 4
+#define ROOM_CREATE 5
 #define username_length 50
 #define message_length 128
 
@@ -117,6 +118,17 @@ void *create_connection(void *arg) {
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
                 break;
+            }
+            else if(type == ROOM_CREATE) {
+                ChatRoom* newRoom = malloc(sizeof(ChatRoom));
+
+                //since username is same size as chatroom name, we can simply use this function again
+                recv_exact_username(newRoom->ChatRoomName, 50, current_user_socket);
+
+                pthread_mutex_lock(curr_user->mutex);
+                insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
+                pthread_mutex_unlock(curr_user->mutex);
+
             }
         }
         close(curr_user->curr->sockid);

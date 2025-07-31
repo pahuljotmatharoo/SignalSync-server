@@ -3,10 +3,12 @@
 
 #include "user.h"
 #include "user_list.h"
+#include "chat_room_list.h"
 
 typedef struct thread_arg {
     user      *curr;
     user_list *list_of_users;
+    ChatRoomList* ChatRoom_list;
     pthread_mutex_t* mutex;
 } thread_arg;
 

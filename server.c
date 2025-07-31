@@ -9,6 +9,7 @@
 #include "thread_functions.h"
 #include "user_list.h"
 #include "messages.h"
+#include "chat_room_list.h"
 #define MSG_SEND 1
 #define MSG_LIST 2
 #define MSG_EXIT 3
@@ -36,6 +37,10 @@ int main() {
     user_list *client_list = malloc(sizeof(user_list));
     init_user_list(client_list);
 
+    //we're gonna need our chatroom list
+    ChatRoomList* ChatRoom_list = malloc(sizeof(ChatRoomList));
+    init_ChatRoom_list(ChatRoom_list);
+
     while (1) {
         //this is storing the clients information
         struct sockaddr_in client;
@@ -61,6 +66,7 @@ int main() {
         thread_arg *arg = malloc(sizeof(thread_arg));
         arg->curr = new_user;
         arg->list_of_users = client_list;
+        arg->ChatRoom_list = ChatRoom_list;
         arg->mutex = &mutex;
 
         pthread_mutex_lock(&mutex);
@@ -69,12 +75,15 @@ int main() {
 
         //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
-        pthread_detach(&new_user->id);
+        pthread_detach(new_user->id);
         send_list(client_list);
+
         pthread_mutex_unlock(&mutex);
 }
     
     //destroy our created linked list
     destructor_user_list(client_list);
+    //destroy out mutex
+    pthread_mutex_destroy(&mutex);
     close(sock);
 }
