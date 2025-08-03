@@ -11,6 +11,13 @@ typedef struct message_to_send {
     char username[username_length];
 } message_s;
 
+//message to send to the user (group)
+typedef struct message_to_send_group {
+    char arr[message_length];
+    char username[username_length];
+    char groupName[username_length];
+} message_s_group;
+
 typedef struct message_recieved {
     char arr[message_length];
     char user_to_send[username_length];

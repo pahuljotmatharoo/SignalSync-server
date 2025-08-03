@@ -12,7 +12,7 @@ void destructor_ChatRoom_list(ChatRoomList *ulist)
 {
     ChatRoom *cur = ulist->head;
     while (cur) {
-        user *next = cur->next;
+        ChatRoom *next = cur->next;
         free(cur);             // free the ChatRoom struct
         cur = next;
     }

@@ -1,8 +1,8 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>     /* for strcmp, strncpy */
-#include <unistd.h>     /* for close() */
+#include <string.h>
+#include <unistd.h>
 #include "user_list.h"
 #include "thread_functions.h"
 #include "messages.h"
@@ -11,8 +11,16 @@
 #define MSG_EXIT 3
 #define USER_EXIT 4
 #define ROOM_CREATE 5
+#define ROOM_MSG 6
 #define username_length 50
 #define message_length 128
+
+//still need to add that whenever a new group is added, all other threads are notified
+//add messaging logic to all users of the group
+
+
+//every user has a thread on the server, so when they send to the server,
+//their own thread is processing the information and sending to other users/all users for grp
 
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
@@ -62,6 +70,7 @@ void *create_connection(void *arg) {
         MsgHeader hdr;
 
         message_s *message_to_send = (message_s*) malloc(sizeof(message_s));
+        message_s_group *message_to_send_group = (message_s_group*) malloc(sizeof(message_s_group));
 
         thread_arg* curr_user = (thread_arg*)arg;
         int current_user_socket = curr_user->curr->sockid;
@@ -119,6 +128,7 @@ void *create_connection(void *arg) {
                 printf("Closing Connection. \n");
                 break;
             }
+
             else if(type == ROOM_CREATE) {
                 ChatRoom* newRoom = malloc(sizeof(ChatRoom));
 
@@ -128,9 +138,37 @@ void *create_connection(void *arg) {
                 pthread_mutex_lock(curr_user->mutex);
                 insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
                 pthread_mutex_unlock(curr_user->mutex);
+            }
 
+            else if(type == ROOM_MSG) {
+                recieved_message a;
+
+                //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
+                size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
+
+                //copy to the real array (its replacing the whole array)
+                strncpy(message_to_send_group->arr, a.arr, message_length);
+                strncpy(message_to_send_group->groupName, a.user_to_send, username_length);
+                strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
+                print_data(message_to_send);
+                printf("\n");
+                printf("Bytes received from the send: %d\n", (int)recieve);
+
+                user* temp_u = curr_user->list_of_users->head;
+                while(temp_u != NULL) {
+                    if(strcmp(temp_u->username, curr_user->curr->username) != 0) {
+                        int type_of_message = ROOM_MSG;
+                        send(temp_u->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+                        int sent = send(temp_u->sockid, message_to_send, sizeof(message_s), 0);
+
+                        printf("Sent to the new client: %d\n", sent);
+                    }
+                    temp_u = temp_u->next;
+                }
             }
         }
+
         close(curr_user->curr->sockid);
 
         pthread_mutex_lock(curr_user->mutex);
@@ -138,6 +176,7 @@ void *create_connection(void *arg) {
         remove_user((curr_user->list_of_users), (curr_user->curr));
 
         user* temp = curr_user->list_of_users->head;
+        
         while(temp != NULL) {
             int type_of_message_list = USER_EXIT;
             send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
