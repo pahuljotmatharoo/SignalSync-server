@@ -16,8 +16,6 @@
 #define message_length 128
 
 //still need to add that whenever a new group is added, all other threads are notified
-//add messaging logic to all users of the group
-
 
 //every user has a thread on the server, so when they send to the server,
 //their own thread is processing the information and sending to other users/all users for grp
@@ -138,6 +136,20 @@ void *create_connection(void *arg) {
                 pthread_mutex_lock(curr_user->mutex);
                 insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
                 pthread_mutex_unlock(curr_user->mutex);
+
+                user* temp_u = curr_user->list_of_users->head;
+                while(temp_u != NULL) {
+                    if(strcmp(temp_u->username, curr_user->curr->username) != 0) {
+                        int type_of_message = ROOM_CREATE;
+                        send(temp_u->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+                        //this sends 50 characters
+                        int sent = send(temp_u->sockid, newRoom->ChatRoomName, 50, 0);
+
+                        printf("Sent to the new client: %d\n", sent);
+                    }
+                    temp_u = temp_u->next;
+                }
             }
 
             else if(type == ROOM_MSG) {
@@ -150,7 +162,7 @@ void *create_connection(void *arg) {
                 strncpy(message_to_send_group->arr, a.arr, message_length);
                 strncpy(message_to_send_group->groupName, a.user_to_send, username_length);
                 strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
-                print_data(message_to_send);
+                //print_data(message_to_send);
                 printf("\n");
                 printf("Bytes received from the send: %d\n", (int)recieve);
 
@@ -160,7 +172,7 @@ void *create_connection(void *arg) {
                         int type_of_message = ROOM_MSG;
                         send(temp_u->sockid, &type_of_message, sizeof(type_of_message), 0);
 
-                        int sent = send(temp_u->sockid, message_to_send, sizeof(message_s), 0);
+                        int sent = send(temp_u->sockid, message_to_send_group, sizeof(message_s_group), 0);
 
                         printf("Sent to the new client: %d\n", sent);
                     }

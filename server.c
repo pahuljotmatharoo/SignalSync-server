@@ -14,7 +14,8 @@
 #define MSG_LIST 2
 #define MSG_EXIT 3
 #define username_length 50
-//we need a better way of doing join, even though it might not Seven be needed, as we are not returning any value from the connection
+
+//need to add so that the user recieves all current groups when connecting first time
 
 int main() {
     pthread_mutex_t mutex;
