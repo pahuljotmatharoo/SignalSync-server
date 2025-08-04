@@ -12,6 +12,7 @@
 #define USER_EXIT 4
 #define ROOM_CREATE 5
 #define ROOM_MSG 6
+#define ROOM_LIST 7
 #define username_length 50
 #define message_length 128
 
@@ -59,7 +60,26 @@ void send_list(user_list* client_list) {
             client_list_send->size = htonl(client_list_send->size);
             send(temp->sockid, client_list_send, sizeof (client_list_s), 0);
             temp = temp->next;
+            free(client_list_send);
     }
+}
+
+//do this
+void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
+    ChatRoom* temp = chatroom_list->head;
+    client_list_s *chatroom_list_send = malloc(sizeof(client_list_s));
+
+    for(int i = 0; i < chatroom_list->size; i++) {
+        strcpy((chatroom_list_send->arr[i]), (temp->ChatRoomName));
+        temp = temp->next;
+    }
+    int type_of_message_list = ROOM_LIST;
+    send(sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+    chatroom_list_send->size = htonl(chatroom_list->size);
+    send(sockid, chatroom_list_send, sizeof (client_list_s), 0);
+
+    free(chatroom_list_send);
 }
 
 void *create_connection(void *arg) {
@@ -137,6 +157,7 @@ void *create_connection(void *arg) {
                 insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
                 pthread_mutex_unlock(curr_user->mutex);
 
+                //tell users of the new room that has been created
                 user* temp_u = curr_user->list_of_users->head;
                 while(temp_u != NULL) {
                     if(strcmp(temp_u->username, curr_user->curr->username) != 0) {
@@ -201,6 +222,7 @@ void *create_connection(void *arg) {
         pthread_mutex_unlock(curr_user->mutex);
 
         free(arg);
-        
+        free(message_to_send);
+        free(message_to_send_group);
         pthread_exit(NULL);
 }

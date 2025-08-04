@@ -15,8 +15,6 @@
 #define MSG_EXIT 3
 #define username_length 50
 
-//need to add so that the user recieves all current groups when connecting first time
-
 int main() {
     pthread_mutex_t mutex;
     //create socket
@@ -77,14 +75,13 @@ int main() {
         //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
         pthread_detach(new_user->id);
-        send_list(client_list);
-
+        send_list(client_list); // send updated list of users to every single user
+        send_chatroom_list(ChatRoom_list, new_sock); // send list of groups only to new user
         pthread_mutex_unlock(&mutex);
 }
 
-    //destroy our created linked list
     destructor_user_list(client_list);
-    //destroy out mutex
+    destructor_ChatRoom_list(ChatRoom_list);
     pthread_mutex_destroy(&mutex);
     close(sock);
 }
