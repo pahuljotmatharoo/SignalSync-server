@@ -16,11 +16,10 @@
 #define username_length 50
 #define message_length 128
 
-//still need to add that whenever a new group is added, all other threads are notified
-
 //every user has a thread on the server, so when they send to the server,
 //their own thread is processing the information and sending to other users/all users for grp
 
+//recieve all message packets sent from a user
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
 	size_t total = 0;
@@ -32,6 +31,7 @@ size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	return total;
 }
 
+//recieve all username packets
 void recv_exact_username(char* temp, size_t len, int sock) {
     size_t total = 0;
     while(total < len) {
@@ -64,7 +64,6 @@ void send_list(user_list* client_list) {
     }
 }
 
-//do this
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
     ChatRoom* temp = chatroom_list->head;
     client_list_s *chatroom_list_send = malloc(sizeof(client_list_s));
@@ -80,6 +79,27 @@ void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
     send(sockid, chatroom_list_send, sizeof (client_list_s), 0);
 
     free(chatroom_list_send);
+}
+
+void room_method(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size) {
+    user* head = temp;
+    if(type_of_message == ROOM_CREATE) {
+        data = (char*)data;
+    }
+    else if(type_of_message == ROOM_MSG) {
+        data = (message_s_group*)data;
+    }
+    while(head != NULL) {
+        if(strcmp(head->username, curr_user->curr->username) != 0) {
+            send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+            //this sends 50 characters
+            int sent = send(head->sockid, data, size, 0);
+
+            printf("Sent to the new client: %d\n", sent);
+        }
+        head = head->next;
+    }
 }
 
 void *create_connection(void *arg) {
@@ -156,21 +176,8 @@ void *create_connection(void *arg) {
                 pthread_mutex_lock(curr_user->mutex);
                 insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
                 pthread_mutex_unlock(curr_user->mutex);
-
-                //tell users of the new room that has been created
-                user* temp_u = curr_user->list_of_users->head;
-                while(temp_u != NULL) {
-                    if(strcmp(temp_u->username, curr_user->curr->username) != 0) {
-                        int type_of_message = ROOM_CREATE;
-                        send(temp_u->sockid, &type_of_message, sizeof(type_of_message), 0);
-
-                        //this sends 50 characters
-                        int sent = send(temp_u->sockid, newRoom->ChatRoomName, 50, 0);
-
-                        printf("Sent to the new client: %d\n", sent);
-                    }
-                    temp_u = temp_u->next;
-                }
+                
+                room_method(curr_user->list_of_users->head, curr_user, ROOM_CREATE, newRoom->ChatRoomName, 50);
             }
 
             else if(type == ROOM_MSG) {
@@ -187,18 +194,7 @@ void *create_connection(void *arg) {
                 printf("\n");
                 printf("Bytes received from the send: %d\n", (int)recieve);
 
-                user* temp_u = curr_user->list_of_users->head;
-                while(temp_u != NULL) {
-                    if(strcmp(temp_u->username, curr_user->curr->username) != 0) {
-                        int type_of_message = ROOM_MSG;
-                        send(temp_u->sockid, &type_of_message, sizeof(type_of_message), 0);
-
-                        int sent = send(temp_u->sockid, message_to_send_group, sizeof(message_s_group), 0);
-
-                        printf("Sent to the new client: %d\n", sent);
-                    }
-                    temp_u = temp_u->next;
-                }
+                room_method(curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228);
             }
         }
 
