@@ -102,6 +102,40 @@ void room_method(user* temp, thread_arg* curr_user, int type_of_message, void* d
     }
 }
 
+void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket) {
+    //make this into a function....
+    recieved_message a;
+
+    //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
+    size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
+                                    
+    //copy to the real array (its replacing the whole array)
+    strncpy(message_to_send->arr, a.arr, message_length);
+    strncpy(message_to_send->username, username, username_length);
+    print_data(message_to_send);
+    printf("\n");
+    printf("Bytes received from the send: %d\n", (int)recieve);
+                        
+    //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
+    user* temp = head;
+
+    while(temp != NULL && strcmp(a.user_to_send, temp->username) != 0) {
+        temp = temp->next;
+    }
+                        
+    if(temp == NULL) {
+        return;
+    }
+
+    //this is the type, letting the client know we are sending a message
+    int type_of_message = MSG_SEND;
+    send(temp->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+    int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
+
+    printf("Sent to the new client: %d\n", sent);
+}
+
 void *create_connection(void *arg) {
     //here we can initalize 
         int n; 
@@ -131,36 +165,8 @@ void *create_connection(void *arg) {
             //the client is sending us information
             if(type == MSG_SEND) {
 
-                recieved_message a;
+                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket);
 
-                //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
-                size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
-                                    
-                //copy to the real array (its replacing the whole array)
-                strncpy(message_to_send->arr, a.arr, message_length);
-                strncpy(message_to_send->username, curr_user->curr->username, username_length);
-                print_data(message_to_send);
-                printf("\n");
-                printf("Bytes received from the send: %d\n", (int)recieve);
-                        
-                //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
-                user* temp = curr_user->list_of_users->head;
-
-                while(temp != NULL && strcmp(a.user_to_send, temp->username) != 0) {
-                    temp = temp->next;
-                }
-                        
-                if(temp == NULL) {
-                    continue;
-                }
-
-                //this is the type, letting the client know we are sending a message
-                int type_of_message = MSG_SEND;
-                send(temp->sockid, &type_of_message, sizeof(type_of_message), 0);
-
-                int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
-
-                printf("Sent to the new client: %d\n", sent);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
@@ -182,7 +188,7 @@ void *create_connection(void *arg) {
 
             else if(type == ROOM_MSG) {
                 recieved_message a;
-
+                
                 //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
                 size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
 
