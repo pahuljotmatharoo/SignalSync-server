@@ -81,7 +81,14 @@ void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
     free(chatroom_list_send);
 }
 
-void room_method(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size) {
+void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user, int type_of_message, void* data, int size, FILE* fp) {
+
+    message_s_group *message_to_send_group = (message_s_group*)(data); // copy recieved data into this struct
+
+    strncpy(message_to_send_group->arr, a->arr, message_length);
+    strncpy(message_to_send_group->groupName, a->user_to_send, username_length);
+    strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
+
     user* head = temp;
     if(type_of_message == ROOM_CREATE) {
         data = (char*)data;
@@ -100,13 +107,31 @@ void room_method(user* temp, thread_arg* curr_user, int type_of_message, void* d
         }
         head = head->next;
     }
+
+    fwrite((void*)(message_to_send_group->arr), sizeof(char), 128, fp);
+    fwrite("\n", 1, 1, fp);
 }
 
-void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket) {
-    //make this into a function....
+void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size) {
+    user* head = temp;
+    data = (char*)data;
+
+    while(head != NULL) {
+        if(strcmp(head->username, curr_user->curr->username) != 0) {
+            send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+            //this sends 50 characters
+            int sent = send(head->sockid, data, size, 0);
+
+            printf("Sent to the new client: %d\n", sent);
+        }
+        head = head->next;
+    }
+}
+
+void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket, FILE* fp) {
     recieved_message a;
 
-    //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
     size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
                                     
     //copy to the real array (its replacing the whole array)
@@ -115,7 +140,10 @@ void send_message_user(message_s *message_to_send, user* head, char username[50]
     print_data(message_to_send);
     printf("\n");
     printf("Bytes received from the send: %d\n", (int)recieve);
-                        
+
+    fwrite((void*)(message_to_send->arr), sizeof(char), 127, fp);
+    fwrite("\n", 1, 1, fp);
+    
     //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
     user* temp = head;
 
@@ -136,6 +164,14 @@ void send_message_user(message_s *message_to_send, user* head, char username[50]
     printf("Sent to the new client: %d\n", sent);
 }
 
+void setupFileString(char* fileName, char *username) {
+    strcpy(fileName, "logs/");
+    strcat(fileName, username);
+
+    // Concatenate ".txt"
+    strcat(fileName, ".txt");
+}
+
 void *create_connection(void *arg) {
     //here we can initalize 
         int n; 
@@ -145,6 +181,16 @@ void *create_connection(void *arg) {
         message_s_group *message_to_send_group = (message_s_group*) malloc(sizeof(message_s_group));
 
         thread_arg* curr_user = (thread_arg*)arg;
+
+        char *fileName = malloc(sizeof(curr_user->curr->username) + 10); // 4 + /0
+
+        setupFileString(fileName, curr_user->curr->username);
+
+        FILE* fp = fopen(fileName, "w");
+
+        free(fileName);
+        fileName = NULL;
+
         int current_user_socket = curr_user->curr->sockid;
 
         pthread_mutex_lock(curr_user->mutex);
@@ -160,13 +206,11 @@ void *create_connection(void *arg) {
             uint32_t type   = ntohl(hdr.type);
             uint32_t length = ntohl(hdr.length);
 
-            printf("Received: %d\n", type);
+            printf("Received: %d, %d\n", type, length);
 
             //the client is sending us information
             if(type == MSG_SEND) {
-
-                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket);
-
+                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket, fp);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
@@ -183,7 +227,7 @@ void *create_connection(void *arg) {
                 insert_ChatRoom(curr_user->ChatRoom_list, newRoom);
                 pthread_mutex_unlock(curr_user->mutex);
                 
-                room_method(curr_user->list_of_users->head, curr_user, ROOM_CREATE, newRoom->ChatRoomName, 50);
+                room_method_creation(curr_user->list_of_users->head, curr_user, ROOM_CREATE, newRoom->ChatRoomName, 50);
             }
 
             else if(type == ROOM_MSG) {
@@ -192,15 +236,11 @@ void *create_connection(void *arg) {
                 //int recieve = recv(curr_user->curr->sockid, &a, sizeof(a), MSG_WAITALL);
                 size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
 
-                //copy to the real array (its replacing the whole array)
-                strncpy(message_to_send_group->arr, a.arr, message_length);
-                strncpy(message_to_send_group->groupName, a.user_to_send, username_length);
-                strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
                 //print_data(message_to_send);
                 printf("\n");
                 printf("Bytes received from the send: %d\n", (int)recieve);
-
-                room_method(curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228);
+                
+                room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, fp);
             }
         }
 
@@ -226,5 +266,6 @@ void *create_connection(void *arg) {
         free(arg);
         free(message_to_send);
         free(message_to_send_group);
+        fclose(fp);
         pthread_exit(NULL);
 }
