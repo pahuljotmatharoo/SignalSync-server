@@ -85,8 +85,11 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
 
     message_s_group *message_to_send_group = (message_s_group*)(data); // copy recieved data into this struct
 
-    strncpy(message_to_send_group->arr, a->arr, message_length);
-    strncpy(message_to_send_group->groupName, a->user_to_send, username_length);
+    a->size_m = ntohl(a->size_m);
+    a->size_u = ntohl(a->size_u);
+
+    strncpy(message_to_send_group->arr, a->arr, a->size_m);
+    strncpy(message_to_send_group->groupName, a->user_to_send, a->size_u);
     strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
 
     user* head = temp;
@@ -108,7 +111,9 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
         head = head->next;
     }
 
-    fwrite((void*)(message_to_send_group->arr), sizeof(char), 128, fp);
+    fwrite((void*)(message_to_send_group->username), sizeof(char), a->size_u, fp);
+    fwrite(" : ", sizeof(char), 1, fp);
+    fwrite((void*)(message_to_send_group->arr), sizeof(char), a->size_m, fp);
     fwrite("\n", 1, 1, fp);
 }
 
@@ -133,7 +138,9 @@ void send_message_user(message_s *message_to_send, user* head, char username[50]
     recieved_message a;
 
     size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
-                                    
+                 
+    a.size_m = ntohl(a.size_m);
+    a.size_u = ntohl(a.size_u);
     //copy to the real array (its replacing the whole array)
     strncpy(message_to_send->arr, a.arr, message_length);
     strncpy(message_to_send->username, username, username_length);
@@ -141,8 +148,10 @@ void send_message_user(message_s *message_to_send, user* head, char username[50]
     printf("\n");
     printf("Bytes received from the send: %d\n", (int)recieve);
 
-    fwrite((void*)(message_to_send->arr), sizeof(char), 127, fp);
-    fwrite("\n", 1, 1, fp);
+    fwrite((void*)(message_to_send->username), sizeof(char), a.size_u, fp);
+    fwrite(" : ", sizeof(char), 1, fp);
+    fwrite((void*)(message_to_send->arr), sizeof(char), a.size_m, fp);
+    fwrite("\n", sizeof(char), 1, fp);
     
     //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
     user* temp = head;

@@ -17,6 +17,8 @@ void recv_exact_username(char* temp, size_t len, int sock);
 void *create_connection(void *arg);
 void send_list(user_list* client_list);
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid);
-void room_method(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size);
+//void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user, int type_of_message, void* data, int size, FILE* fp);
+void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size);
+void setupFileString(char* fileName, char *username);
 
 #endif /* THREAD_FUNCTIONS_H */

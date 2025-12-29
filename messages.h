@@ -21,6 +21,8 @@ typedef struct message_to_send_group {
 typedef struct message_recieved {
     char arr[message_length];
     char user_to_send[username_length];
+    uint32_t size_m;
+    uint32_t size_u;
 } recieved_message;
 
 typedef struct list {
