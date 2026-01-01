@@ -17,6 +17,9 @@
 
 int main() {
     pthread_mutex_t mutex;
+    pthread_mutex_t fileMutex;
+    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&fileMutex, NULL);
     //create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -67,6 +70,7 @@ int main() {
         arg->list_of_users = client_list;
         arg->ChatRoom_list = ChatRoom_list;
         arg->mutex = &mutex;
+        arg->fileMutex = &fileMutex;
 
         pthread_mutex_lock(&mutex);
 
@@ -77,11 +81,13 @@ int main() {
         pthread_detach(new_user->id);
         send_list(client_list); // send updated list of users to every single user
         send_chatroom_list(ChatRoom_list, new_sock); // send list of groups only to new user
+
         pthread_mutex_unlock(&mutex);
 }
 
     destructor_user_list(client_list);
     destructor_ChatRoom_list(ChatRoom_list);
     pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&fileMutex);
     close(sock);
 }

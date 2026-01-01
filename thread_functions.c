@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "user_list.h"
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "thread_functions.h"
 #include "messages.h"
 #define MSG_SEND 1
@@ -39,6 +41,40 @@ void recv_exact_username(char* temp, size_t len, int sock) {
         if (r == 0)  return; 
         total += r;
     }
+}
+
+//wish we had templates in C
+void write_to_file_group(FILE* fp, message_s_group * message_to_send_group) {
+    fprintf(fp, "%s", message_to_send_group->username);
+    fprintf(fp, " : ");
+    fprintf(fp, "%s", message_to_send_group->arr);
+    fprintf(fp, "\n");
+}
+
+void write_to_file_user(message_s * message_to_send_user, char* threadUsername, char* recvUsername, pthread_mutex_t *fileMutex) {
+    pthread_mutex_lock(fileMutex);
+
+    char* filename = setupFileString(threadUsername, recvUsername); // one we are sending to
+    FILE* fp = fopen(filename, "a");
+    fseek(fp, 0, SEEK_END);
+    fprintf(fp, "%s", threadUsername);
+    fprintf(fp, " : ");
+    fprintf(fp, "%s", message_to_send_user->arr);
+    fprintf(fp, "\n");
+    fclose(fp);
+    free(filename);
+
+    char* filename2 = setupFileString(recvUsername, threadUsername); // one we are sending to
+    FILE* fp2 = fopen(filename2, "a");
+    fseek(fp2, 0, SEEK_END);
+    fprintf(fp2, "%s", threadUsername);
+    fprintf(fp2, " : ");
+    fprintf(fp2, "%s", message_to_send_user->arr);
+    fprintf(fp2, "\n");
+    fclose(fp2);
+    free(filename2);
+
+    pthread_mutex_unlock(fileMutex);
 }
 
 void send_list(user_list* client_list) {
@@ -104,17 +140,18 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
             send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
 
             //this sends 50 characters
-            int sent = send(head->sockid, data, size, 0);
+            send(head->sockid, data, size, 0);
 
-            printf("Sent to the new client: %d\n", sent);
+            //printf("Sent to the new client: %d\n", sent);
         }
         head = head->next;
     }
+    message_to_send_group->username[a->size_u] = '\0';
+    message_to_send_group->arr[a->size_m] = '\0';
+    int x = 5;
 
-    fwrite((void*)(message_to_send_group->username), sizeof(char), a->size_u, fp);
-    fwrite(" : ", sizeof(char), 1, fp);
-    fwrite((void*)(message_to_send_group->arr), sizeof(char), a->size_m, fp);
-    fwrite("\n", 1, 1, fp);
+    write_to_file_group(fp, message_to_send_group);
+
 }
 
 void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size) {
@@ -126,32 +163,30 @@ void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message
             send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
 
             //this sends 50 characters
-            int sent = send(head->sockid, data, size, 0);
+            send(head->sockid, data, size, 0);
 
-            printf("Sent to the new client: %d\n", sent);
+            //printf("Sent to the new client: %d\n", sent);
         }
         head = head->next;
     }
 }
 
-void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket, FILE* fp) {
+//username is the user who is sending message
+void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket, thread_arg* threadArg) {
     recieved_message a;
 
-    size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
-                 
+    recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
+    
     a.size_m = ntohl(a.size_m);
     a.size_u = ntohl(a.size_u);
     //copy to the real array (its replacing the whole array)
     strncpy(message_to_send->arr, a.arr, message_length);
     strncpy(message_to_send->username, username, username_length);
-    print_data(message_to_send);
-    printf("\n");
-    printf("Bytes received from the send: %d\n", (int)recieve);
 
-    fwrite((void*)(message_to_send->username), sizeof(char), a.size_u, fp);
-    fwrite(" : ", sizeof(char), 1, fp);
-    fwrite((void*)(message_to_send->arr), sizeof(char), a.size_m, fp);
-    fwrite("\n", sizeof(char), 1, fp);
+    a.user_to_send[a.size_u] = '\0';
+    a.arr[a.size_m] = '\0';
+
+    write_to_file_user(message_to_send, username, a.user_to_send, threadArg->fileMutex);
     
     //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
     user* temp = head;
@@ -171,14 +206,23 @@ void send_message_user(message_s *message_to_send, user* head, char username[50]
     int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
 
     printf("Sent to the new client: %d\n", sent);
+
+    memset(message_to_send, 0, sizeof(message_s));
 }
 
-void setupFileString(char* fileName, char *username) {
-    strcpy(fileName, "logs/");
-    strcat(fileName, username);
+void setupDir(char* username) {
+    size_t len = strlen("logs/users/") + strlen(username) + 1;
+    char* dir_location = malloc(len);
+    snprintf(dir_location, len, "logs/users/%s", username);
+    mkdir(dir_location, 0776);
+    free(dir_location);
+}
 
-    // Concatenate ".txt"
-    strcat(fileName, ".txt");
+char* setupFileString(char *username, char* username_to_send) {
+    size_t len = strlen("logs/users/") + strlen(username) + 1 + strlen(username_to_send) + 4 + 1;
+    char* file_location = malloc(len);
+    snprintf(file_location, len, "logs/users/%s/%s.txt", username, username_to_send);
+    return file_location;
 }
 
 void *create_connection(void *arg) {
@@ -191,14 +235,7 @@ void *create_connection(void *arg) {
 
         thread_arg* curr_user = (thread_arg*)arg;
 
-        char *fileName = malloc(sizeof(curr_user->curr->username) + 10); // 4 + /0
-
-        setupFileString(fileName, curr_user->curr->username);
-
-        FILE* fp = fopen(fileName, "w");
-
-        free(fileName);
-        fileName = NULL;
+        setupDir(curr_user->curr->username);
 
         int current_user_socket = curr_user->curr->sockid;
 
@@ -215,11 +252,11 @@ void *create_connection(void *arg) {
             uint32_t type   = ntohl(hdr.type);
             uint32_t length = ntohl(hdr.length);
 
-            printf("Received: %d, %d\n", type, length);
+            //printf("Received: %d, %d\n", type, length);
 
             //the client is sending us information
             if(type == MSG_SEND) {
-                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket, fp);
+                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket, curr_user);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
@@ -246,10 +283,10 @@ void *create_connection(void *arg) {
                 size_t recieve = recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
 
                 //print_data(message_to_send);
-                printf("\n");
-                printf("Bytes received from the send: %d\n", (int)recieve);
+                //printf("\n");
+                //printf("Bytes received from the send: %d\n", (int)recieve);
                 
-                room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, fp);
+                room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, NULL);
             }
         }
 
@@ -275,6 +312,5 @@ void *create_connection(void *arg) {
         free(arg);
         free(message_to_send);
         free(message_to_send_group);
-        fclose(fp);
         pthread_exit(NULL);
 }

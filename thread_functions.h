@@ -10,6 +10,7 @@ typedef struct thread_arg {
     user_list *list_of_users;
     ChatRoomList* ChatRoom_list;
     pthread_mutex_t* mutex;
+    pthread_mutex_t* fileMutex;
 } thread_arg;
 
 size_t recv_exact_msg(void* buf, size_t len, int sock);
@@ -19,6 +20,6 @@ void send_list(user_list* client_list);
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid);
 //void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user, int type_of_message, void* data, int size, FILE* fp);
 void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size);
-void setupFileString(char* fileName, char *username);
+char* setupFileString(char *username, char* username_to_send);
 
 #endif /* THREAD_FUNCTIONS_H */
