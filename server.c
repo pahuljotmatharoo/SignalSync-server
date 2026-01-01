@@ -17,9 +17,11 @@
 
 int main() {
     pthread_mutex_t mutex;
-    pthread_mutex_t fileMutex;
+    pthread_mutex_t user_fileMutex;
+    pthread_mutex_t group_fileMutex;
     pthread_mutex_init(&mutex, NULL);
-    pthread_mutex_init(&fileMutex, NULL);
+    pthread_mutex_init(&user_fileMutex, NULL);
+    pthread_mutex_init(&group_fileMutex, NULL);
     //create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -70,8 +72,9 @@ int main() {
         arg->list_of_users = client_list;
         arg->ChatRoom_list = ChatRoom_list;
         arg->mutex = &mutex;
-        arg->fileMutex = &fileMutex;
-
+        arg->user_fileMutex = &user_fileMutex;
+        arg->group_fileMutex = &group_fileMutex;
+        
         pthread_mutex_lock(&mutex);
 
         insert_user(client_list, new_user);
@@ -88,6 +91,7 @@ int main() {
     destructor_user_list(client_list);
     destructor_ChatRoom_list(ChatRoom_list);
     pthread_mutex_destroy(&mutex);
-    pthread_mutex_destroy(&fileMutex);
+    pthread_mutex_destroy(&user_fileMutex);
+    pthread_mutex_destroy(&group_fileMutex);
     close(sock);
 }
