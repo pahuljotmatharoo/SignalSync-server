@@ -15,15 +15,30 @@
 #define MSG_EXIT 3
 #define username_length 50
 
+pthread_mutex_t mutex;
+pthread_mutex_t user_fileMutex;
+pthread_mutex_t group_fileMutex;
+user_list *client_list;
+ChatRoomList* ChatRoom_list;
+int sock;
+
+void cleanup() {
+    destructor_user_list(client_list);
+    destructor_ChatRoom_list(ChatRoom_list);
+    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&user_fileMutex);
+    pthread_mutex_destroy(&group_fileMutex);
+    close(sock);
+}
+
 int main() {
-    pthread_mutex_t mutex;
-    pthread_mutex_t user_fileMutex;
-    pthread_mutex_t group_fileMutex;
+    atexit(cleanup);
     pthread_mutex_init(&mutex, NULL);
     pthread_mutex_init(&user_fileMutex, NULL);
     pthread_mutex_init(&group_fileMutex, NULL);
+
     //create socket
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    sock = socket(AF_INET, SOCK_STREAM, 0);
 
     //create our server's information
     struct sockaddr_in server;
@@ -38,11 +53,11 @@ int main() {
     listen(sock, 25);
 
     //we're gonna need our client list
-    user_list *client_list = malloc(sizeof(user_list));
+    client_list = malloc(sizeof(user_list));
     init_user_list(client_list);
 
     //we're gonna need our chatroom list
-    ChatRoomList* ChatRoom_list = malloc(sizeof(ChatRoomList));
+    ChatRoom_list = malloc(sizeof(ChatRoomList));
     init_ChatRoom_list(ChatRoom_list);
 
     while (1) {
@@ -87,11 +102,4 @@ int main() {
 
         pthread_mutex_unlock(&mutex);
 }
-
-    destructor_user_list(client_list);
-    destructor_ChatRoom_list(ChatRoom_list);
-    pthread_mutex_destroy(&mutex);
-    pthread_mutex_destroy(&user_fileMutex);
-    pthread_mutex_destroy(&group_fileMutex);
-    close(sock);
 }

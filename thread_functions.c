@@ -109,11 +109,12 @@ void send_list(user_list* client_list) {
             send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
 
             client_list_s* client_list_send = malloc(sizeof (client_list_s));
+            memset(client_list_send, 0, sizeof(client_list_s));
             client_list_send->size = client_list->size;
 
             user* temp_node = client_list->head;
 
-            for(int i = 0; i < client_list->size; i++) {
+            for(size_t i = 0; i < (size_t)(client_list->size); i++) {
                 strcpy((client_list_send->arr[i]), (temp_node->username));
                 temp_node = temp_node->next;
             }
@@ -128,6 +129,7 @@ void send_list(user_list* client_list) {
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
     ChatRoom* temp = chatroom_list->head;
     client_list_s *chatroom_list_send = malloc(sizeof(client_list_s));
+    memset(chatroom_list_send, 0, sizeof(client_list_s));
 
     for(int i = 0; i < chatroom_list->size; i++) {
         strcpy((chatroom_list_send->arr[i]), (temp->ChatRoomName));
@@ -307,7 +309,7 @@ void *create_connection(void *arg) {
             }
 
             else if(type == ROOM_MSG) {
-                recieved_message a;
+                recieved_message a = {0};
 
                 recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
                 
