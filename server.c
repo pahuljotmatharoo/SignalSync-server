@@ -20,11 +20,13 @@ pthread_mutex_t user_fileMutex;
 pthread_mutex_t group_fileMutex;
 user_list *client_list;
 ChatRoomList* ChatRoom_list;
+user_map* user_Map;
 int sock;
 
 void cleanup() {
     destructor_user_list(client_list);
     destructor_ChatRoom_list(ChatRoom_list);
+    destroyUserMap(user_Map);
     pthread_mutex_destroy(&mutex);
     pthread_mutex_destroy(&user_fileMutex);
     pthread_mutex_destroy(&group_fileMutex);
@@ -36,6 +38,10 @@ int main() {
     pthread_mutex_init(&mutex, NULL);
     pthread_mutex_init(&user_fileMutex, NULL);
     pthread_mutex_init(&group_fileMutex, NULL);
+
+    user_Map = malloc(sizeof(user_map));
+
+    initUserMap(user_Map);
 
     //create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -89,15 +95,18 @@ int main() {
         arg->mutex = &mutex;
         arg->user_fileMutex = &user_fileMutex;
         arg->group_fileMutex = &group_fileMutex;
+        arg->user_Map = user_Map;
         
         pthread_mutex_lock(&mutex);
 
-        insert_user(client_list, new_user);
+        insertUser(user_Map, new_user);
 
-        //create the thread to run for the user
         pthread_create(&new_user->id, NULL, create_connection, arg);
+
         pthread_detach(new_user->id);
-        send_list(client_list); // send updated list of users to every single user
+
+        sendList(user_Map);
+
         send_chatroom_list(ChatRoom_list, new_sock); // send list of groups only to new user
 
         pthread_mutex_unlock(&mutex);

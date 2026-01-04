@@ -18,16 +18,13 @@
 #define username_length 50
 #define message_length 128
 
-//every user has a thread on the server, so when they send to the server,
-//their own thread is processing the information and sending to other users/all users for grp
-
 //recieve all message packets sent from a user
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
 	size_t total = 0;
 	while (total < len) {
 		size_t r = recv(sock, (temp) + total, len - total, 0);
-		if (r == 0)  return 0;   // peer closed
+		if (r == 0)  return 0;
 		total += r;
 	}
 	return total;
@@ -102,28 +99,35 @@ void write_to_file_user(message_s * message_to_send_user, char* threadUsername, 
     pthread_mutex_unlock(user_fileMutex);
 }
 
-void send_list(user_list* client_list) {
-    user* temp = client_list->head;
-    while(temp != NULL) {
-            int type_of_message_list = MSG_LIST;
-            send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+void sendList(user_map* t_map) {
+    client_list_s* client_list_send = malloc(sizeof(client_list_s));
+    memset(client_list_send, 0, sizeof(client_list_s));
+    int outer_index = 0;
+    client_list_send->size = t_map->m_size;
 
-            client_list_s* client_list_send = malloc(sizeof (client_list_s));
-            memset(client_list_send, 0, sizeof(client_list_s));
-            client_list_send->size = client_list->size;
-
-            user* temp_node = client_list->head;
-
-            for(size_t i = 0; i < (size_t)(client_list->size); i++) {
-                strcpy((client_list_send->arr[i]), (temp_node->username));
-                temp_node = temp_node->next;
-            }
-
-            client_list_send->size = htonl(client_list_send->size);
-            send(temp->sockid, client_list_send, sizeof (client_list_s), 0);
-            temp = temp->next;
-            free(client_list_send);
+    for(size_t j = 0; j < MAXUSERS; j++) {
+        if(t_map->m_userArr[j] == NULL) {
+            continue;
+        }
+        else {
+            strcpy((client_list_send->arr[outer_index]), (t_map->m_userArr[j]->username));
+            outer_index++;
+        }
     }
+
+    client_list_send->size = htonl(client_list_send->size);
+
+    for(size_t i = 0; i < MAXUSERS; i++) {
+        if(t_map->m_userArr[i] == NULL) {continue;}
+
+        //make this into a function
+        int type_of_message_list = MSG_LIST;
+        send(t_map->m_userArr[i]->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+        send(t_map->m_userArr[i]->sockid, client_list_send, sizeof (client_list_s), 0);
+    }
+
+    free(client_list_send);
 }
 
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
@@ -147,6 +151,7 @@ void send_chatroom_list(ChatRoomList* chatroom_list, int sockid) {
 void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user, int type_of_message, void* data, int size, thread_arg* threadArg) {
 
     message_s_group *message_to_send_group = (message_s_group*)(data); // copy recieved data into this struct
+    user_map* t_map = curr_user->user_Map;
 
     a->size_m = ntohl(a->size_m);
     a->size_u = ntohl(a->size_u);
@@ -155,22 +160,16 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
     strncpy(message_to_send_group->groupName, a->user_to_send, a->size_u);
     strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
 
-    user* head = temp;
-    if(type_of_message == ROOM_CREATE) {
-        data = (char*)data;
-    }
-    else if(type_of_message == ROOM_MSG) {
-        data = (message_s_group*)data;
-    }
-    while(head != NULL) {
-        if(strcmp(head->username, curr_user->curr->username) != 0) { // ensure we don't send to same user
-            send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
+    for(size_t i = 0; i < MAXUSERS; i++) {
+        if(t_map->m_userArr[i] == NULL) {continue;}
 
-            //this sends 50 characters
-            send(head->sockid, data, size, 0);
-        }
-        head = head->next;
+        if(t_map->m_userArr[i]->id == curr_user->curr->id) {continue;}
+
+        send(t_map->m_userArr[i]->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+        send(t_map->m_userArr[i]->sockid, message_to_send_group, size, 0);
     }
+
     message_to_send_group->username[a->size_u] = '\0';
     message_to_send_group->arr[a->size_m] = '\0';
     int x = 5;
@@ -180,55 +179,43 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
 }
 
 void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size) {
-    user* head = temp;
     data = (char*)data;
+    user_map* t_map = curr_user->user_Map;
 
-    while(head != NULL) {
-        if(strcmp(head->username, curr_user->curr->username) != 0) {
-            send(head->sockid, &type_of_message, sizeof(type_of_message), 0);
+    for(size_t i = 0; i < MAXUSERS; i++) {
+        if(t_map->m_userArr[i] == NULL) {continue;}
 
-            //this sends 50 characters
-            send(head->sockid, data, size, 0);
+        if(t_map->m_userArr[i]->id == curr_user->curr->id) {continue;}
+        
+        send(t_map->m_userArr[i]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
-            //printf("Sent to the new client: %d\n", sent);
-        }
-        head = head->next;
+        send(t_map->m_userArr[i]->sockid, data, size, 0);
     }
 }
 
 //username is the user who is sending message
-void send_message_user(message_s *message_to_send, user* head, char username[50], int current_user_socket, thread_arg* threadArg) {
-    recieved_message a;
-
-    recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
+void send_message_user(message_s *message_to_send, int current_user_socket, thread_arg* threadArg) { // username
+    recieved_message recievedMessage;
+    recv_exact_msg(&recievedMessage, sizeof(recieved_message), current_user_socket);
     
-    a.size_m = ntohl(a.size_m);
-    a.size_u = ntohl(a.size_u);
-    //copy to the real array (its replacing the whole array)
-    strncpy(message_to_send->arr, a.arr, message_length);
-    strncpy(message_to_send->username, username, username_length);
+    recievedMessage.size_m = ntohl(recievedMessage.size_m);
+    recievedMessage.size_u = ntohl(recievedMessage.size_u);
 
-    a.user_to_send[a.size_u] = '\0';
-    a.arr[a.size_m] = '\0';
+    strncpy(message_to_send->arr, recievedMessage.arr, message_length);
+    strncpy(message_to_send->username, threadArg->curr->username, username_length); // this is our username
 
-    write_to_file_user(message_to_send, username, a.user_to_send, threadArg->user_fileMutex);
-    
-    //so now that we have recieved the thing to send to a specific ip, we're gonna find corresponding socket
-    user* temp = head;
+    recievedMessage.user_to_send[recievedMessage.size_u] = '\0';
+    recievedMessage.arr[recievedMessage.size_m] = '\0';
 
-    while(temp != NULL && strcmp(a.user_to_send, temp->username) != 0) {
-        temp = temp->next;
-    }
-                        
-    if(temp == NULL) {
-        return;
-    }
+    write_to_file_user(message_to_send, threadArg->curr->username, recievedMessage.user_to_send, threadArg->user_fileMutex);
+
+    size_t index = findUser(threadArg->user_Map, recievedMessage.user_to_send);
 
     //this is the type, letting the client know we are sending a message
     int type_of_message = MSG_SEND;
-    send(temp->sockid, &type_of_message, sizeof(type_of_message), 0);
+    send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
-    int sent = send(temp->sockid, message_to_send, sizeof(message_s), 0);
+    int sent = send(threadArg->user_Map->m_userArr[index]->sockid, message_to_send, sizeof(message_s), 0);
 
     printf("Sent to the new client: %d\n", sent);
 
@@ -255,6 +242,18 @@ char* setupFileStringGroup(char* group) {
     char* file_location = malloc(len);
     snprintf(file_location, len, "logs/groups/%s.txt", group);
     return file_location;
+}
+
+void sendUserRemoval(thread_arg* threadArg) {
+    user_map* t_map = threadArg->user_Map;
+    int type_of_message_list = USER_EXIT;
+    for(int i = 0; i < MAXUSERS; i++) {
+        if(t_map->m_userArr[i] == NULL) {continue;}
+        if(t_map->m_userArr[i]->id == threadArg->curr->id) {continue;}
+        send(t_map->m_userArr[i]->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
+
+        send(t_map->m_userArr[i]->sockid, threadArg->curr->username, sizeof(threadArg->curr->username), 0);
+    }
 }
 
 void *create_connection(void *arg) {
@@ -288,7 +287,7 @@ void *create_connection(void *arg) {
 
             //the client is sending us information
             if(type == MSG_SEND) {
-                send_message_user(message_to_send, curr_user->list_of_users->head, curr_user->curr->username, current_user_socket, curr_user);
+                send_message_user(message_to_send, current_user_socket, curr_user);
             }
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
@@ -321,18 +320,9 @@ void *create_connection(void *arg) {
 
         pthread_mutex_lock(curr_user->mutex);
 
-        remove_user((curr_user->list_of_users), (curr_user->curr));
+        removeUser(curr_user->user_Map, curr_user->curr);
 
-        user* temp = curr_user->list_of_users->head;
-        
-        while(temp != NULL) {
-            int type_of_message_list = USER_EXIT;
-            send(temp->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
-
-            send(temp->sockid, curr_user->curr->username, sizeof(curr_user->curr->username), 0);
-
-            temp = temp->next;
-        }
+        sendUserRemoval(curr_user);
 
         pthread_mutex_unlock(curr_user->mutex);
 
