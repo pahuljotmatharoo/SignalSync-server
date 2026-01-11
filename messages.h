@@ -25,6 +25,13 @@ typedef struct message_recieved {
     uint32_t size_u;
 } recieved_message;
 
+typedef struct {
+    char* arr;
+    char user_to_send[username_length];
+    uint32_t size_m;
+    uint32_t size_u;
+} recieved_png;
+
 typedef struct list {
     uint32_t size;
     char arr[max_users][username_length];

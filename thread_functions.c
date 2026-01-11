@@ -15,6 +15,7 @@
 #define ROOM_CREATE 5
 #define ROOM_MSG 6
 #define ROOM_LIST 7
+#define PNG_SEND 8
 #define username_length 50
 #define message_length 128
 
@@ -38,6 +39,37 @@ void recv_exact_username(char* temp, size_t len, int sock) {
         if (r == 0)  return; 
         total += r;
     }
+}
+
+void recv_exact_png(char* temp, size_t len, int sock) {
+    size_t total = 0;
+    while(total < len) {
+        size_t r = recv(sock, temp+total, len - total, 0);
+        if (r == 0)  return; 
+        total += r;
+    }
+    printf("");
+}
+
+void sendAll(recieved_png* msg, thread_arg* threadArg, int index) {
+    size_t total = 0;
+    while(total < msg->size_m + msg->size_u) {
+        size_t r = send(threadArg->user_Map->m_userArr[index]->sockid, msg+total, msg->size_m + msg->size_u - total, 0);
+        total += r;
+    }
+}
+
+void sendPng(recieved_png* msg, thread_arg* threadArg) {
+    size_t index = findUser(threadArg->user_Map, msg->user_to_send);
+
+    //this is the type, letting the client know we are sending a message
+    int type_of_message = PNG_SEND;
+    send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
+
+    sendAll(msg, threadArg, index);
+
+    //printf("Sent to the new client: \n");
+
 }
 
 //wish we had templates in C
@@ -313,6 +345,19 @@ void *create_connection(void *arg) {
                 recv_exact_msg(&a, sizeof(recieved_message), current_user_socket);
                 
                 room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, curr_user);
+            }
+            else if(type == PNG_SEND) {
+                int64_t png_size = 0;
+                recv(curr_user->curr->sockid, &png_size, sizeof(int64_t), 0);
+                recieved_png png;
+                png.arr = malloc(png_size);
+                recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
+                recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
+                // FILE* fp = fopen("sample.png", "wb");
+                // fwrite(png.arr, 1, png_size, fp);
+                // fclose(fp);
+                free(png.arr);
+                printf("Done recv png \n");
             }
         }
 
