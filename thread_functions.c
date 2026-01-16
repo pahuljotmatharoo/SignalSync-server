@@ -51,25 +51,33 @@ void recv_exact_png(char* temp, size_t len, int sock) {
     printf("");
 }
 
-void sendAll(recieved_png* msg, thread_arg* threadArg, int index) {
+void sendSize(int size, thread_arg* threadArg, size_t index) {
+    send(threadArg->user_Map->m_userArr[index]->sockid, &size, sizeof(int), 0);
+}
+
+void sendAll(char* msg, thread_arg* threadArg, int index, int size) {
     size_t total = 0;
-    while(total < msg->size_m + msg->size_u) {
-        size_t r = send(threadArg->user_Map->m_userArr[index]->sockid, msg+total, msg->size_m + msg->size_u - total, 0);
+    while(total < size) {
+        size_t r = send(threadArg->user_Map->m_userArr[index]->sockid, msg+total, size - total, 0);
         total += r;
     }
 }
 
-void sendPng(recieved_png* msg, thread_arg* threadArg) {
-    size_t index = findUser(threadArg->user_Map, msg->user_to_send);
+void sendUsername(char username[50], int index, thread_arg* threadArg) {
+    send(threadArg->user_Map->m_userArr[index]->sockid, username, 50, 0);
+}
 
-    //this is the type, letting the client know we are sending a message
+void sendPng(recieved_png* msg, thread_arg* threadArg) {
+    pthread_mutex_lock(threadArg->mutex);
+    size_t index = findUser(threadArg->user_Map, msg->user_to_send);
+    pthread_mutex_unlock(threadArg->mutex);
+
     int type_of_message = PNG_SEND;
     send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
-    sendAll(msg, threadArg, index);
-
-    //printf("Sent to the new client: \n");
-
+    sendSize(msg->size_m,  threadArg, index);
+    sendAll(msg->arr, threadArg, index, msg->size_m);
+    sendUsername(threadArg->curr->username, index, threadArg);
 }
 
 //wish we had templates in C
@@ -353,6 +361,7 @@ void *create_connection(void *arg) {
                 png.arr = malloc(png_size);
                 recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
                 recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
+                sendPng(&png, curr_user);
                 // FILE* fp = fopen("sample.png", "wb");
                 // fwrite(png.arr, 1, png_size, fp);
                 // fclose(fp);
