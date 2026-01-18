@@ -48,7 +48,6 @@ void recv_exact_png(char* temp, size_t len, int sock) {
         if (r == 0)  return; 
         total += r;
     }
-    printf("");
 }
 
 void sendSize(int size, thread_arg* threadArg, size_t index) {
@@ -288,8 +287,7 @@ void sendUserRemoval(thread_arg* threadArg) {
     user_map* t_map = threadArg->user_Map;
     int type_of_message_list = USER_EXIT;
     for(int i = 0; i < MAXUSERS; i++) {
-        if(t_map->m_userArr[i] == NULL) {continue;}
-        if(t_map->m_userArr[i]->id == threadArg->curr->id) {continue;}
+        if(t_map->m_userArr[i] == NULL || t_map->m_userArr[i]->id == threadArg->curr->id) {continue;}
         send(t_map->m_userArr[i]->sockid, &type_of_message_list, sizeof(type_of_message_list), 0);
 
         send(t_map->m_userArr[i]->sockid, threadArg->curr->username, sizeof(threadArg->curr->username), 0);
@@ -355,12 +353,14 @@ void *create_connection(void *arg) {
                 room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, curr_user);
             }
             else if(type == PNG_SEND) {
-                int64_t png_size = 0;
+                uint32_t png_size = 0;
                 recv(curr_user->curr->sockid, &png_size, sizeof(int64_t), 0);
                 recieved_png png;
                 png.arr = malloc(png_size);
                 recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
                 recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
+                png.size_m = png_size;
+                png.size_u = strlen(png.user_to_send);
                 sendPng(&png, curr_user);
                 // FILE* fp = fopen("sample.png", "wb");
                 // fwrite(png.arr, 1, png_size, fp);
