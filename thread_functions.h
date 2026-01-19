@@ -18,7 +18,7 @@ typedef struct thread_arg {
 
 size_t recv_exact_msg(void* buf, size_t len, int sock);
 void recv_exact_username(char* temp, size_t len, int sock);
-void recv_exact_png(char* temp, size_t len, int sock);
+void recv_exact_png(char* temp, uint32_t len, int sock);
 void *create_connection(void *arg);
 void sendList(user_map* t_map);
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid);

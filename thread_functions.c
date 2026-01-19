@@ -19,6 +19,8 @@
 #define username_length 50
 #define message_length 128
 
+//figure out why magic offsets work...
+
 //recieve all message packets sent from a user
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
@@ -41,10 +43,10 @@ void recv_exact_username(char* temp, size_t len, int sock) {
     }
 }
 
-void recv_exact_png(char* temp, size_t len, int sock) {
-    size_t total = 0;
+void recv_exact_png(char* temp, uint32_t len, int sock) {
+    ssize_t total = 0;
     while(total < len) {
-        size_t r = recv(sock, temp+total, len - total, 0);
+        ssize_t r = recv(sock, temp+total, len - total, 0);
         if (r == 0)  return; 
         total += r;
     }
@@ -71,11 +73,16 @@ void sendPng(recieved_png* msg, thread_arg* threadArg) {
     size_t index = findUser(threadArg->user_Map, msg->user_to_send);
     pthread_mutex_unlock(threadArg->mutex);
 
+    if(index > MAXUSERS) {
+        printf("Index is wrong! \n");
+        return;
+    }
+
     int type_of_message = PNG_SEND;
     send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
     sendSize(msg->size_m,  threadArg, index);
-    sendAll(msg->arr, threadArg, index, msg->size_m);
+    sendAll(msg->arr+4, threadArg, index, msg->size_m); // idk why....
     sendUsername(threadArg->curr->username, index, threadArg);
 }
 
@@ -354,17 +361,20 @@ void *create_connection(void *arg) {
             }
             else if(type == PNG_SEND) {
                 uint32_t png_size = 0;
-                recv(curr_user->curr->sockid, &png_size, sizeof(int64_t), 0);
+                recv(curr_user->curr->sockid, &png_size, sizeof(uint32_t), 0);
                 recieved_png png;
                 png.arr = malloc(png_size);
+                memset(png.arr, 0, png_size);
                 recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
                 recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
+                memcpy(png.user_to_send, png.user_to_send+4, 46); // idk why...
+                png.user_to_send[49] = '\0';
                 png.size_m = png_size;
                 png.size_u = strlen(png.user_to_send);
                 sendPng(&png, curr_user);
-                // FILE* fp = fopen("sample.png", "wb");
-                // fwrite(png.arr, 1, png_size, fp);
-                // fclose(fp);
+                //FILE* fp = fopen("sample.png", "wb");
+                //fwrite(png.arr+4, 1, png_size, fp);
+                //fclose(fp);
                 free(png.arr);
                 printf("Done recv png \n");
             }
