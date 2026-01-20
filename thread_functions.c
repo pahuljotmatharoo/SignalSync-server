@@ -82,7 +82,7 @@ void sendPng(recieved_png* msg, thread_arg* threadArg) {
     send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
     sendSize(msg->size_m,  threadArg, index);
-    sendAll(msg->arr+4, threadArg, index, msg->size_m); // idk why....
+    sendAll(msg->arr, threadArg, index, msg->size_m); // idk why....
     sendUsername(threadArg->curr->username, index, threadArg);
 }
 
@@ -367,14 +367,11 @@ void *create_connection(void *arg) {
                 memset(png.arr, 0, png_size);
                 recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
                 recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
-                memcpy(png.user_to_send, png.user_to_send+4, 46); // idk why...
+                memcpy(png.user_to_send, png.user_to_send, 50); // idk why...
                 png.user_to_send[49] = '\0';
                 png.size_m = png_size;
                 png.size_u = strlen(png.user_to_send);
                 sendPng(&png, curr_user);
-                //FILE* fp = fopen("sample.png", "wb");
-                //fwrite(png.arr+4, 1, png_size, fp);
-                //fclose(fp);
                 free(png.arr);
                 printf("Done recv png \n");
             }
