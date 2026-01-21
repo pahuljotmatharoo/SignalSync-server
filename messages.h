@@ -28,6 +28,7 @@ typedef struct message_recieved {
 typedef struct {
     char* arr;
     char user_to_send[username_length];
+    char filename_to_send[username_length];
     uint32_t size_m;
     uint32_t size_u;
 } recieved_png;

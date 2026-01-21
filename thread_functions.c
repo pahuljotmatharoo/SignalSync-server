@@ -84,6 +84,7 @@ void sendPng(recieved_png* msg, thread_arg* threadArg) {
     sendSize(msg->size_m,  threadArg, index);
     sendAll(msg->arr, threadArg, index, msg->size_m); // idk why....
     sendUsername(threadArg->curr->username, index, threadArg);
+    sendUsername(msg->filename_to_send, index, threadArg);
 }
 
 //wish we had templates in C
@@ -367,7 +368,7 @@ void *create_connection(void *arg) {
                 memset(png.arr, 0, png_size);
                 recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
                 recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
-                memcpy(png.user_to_send, png.user_to_send, 50); // idk why...
+                recv_exact_username(png.filename_to_send, 50, curr_user->curr->sockid);
                 png.user_to_send[49] = '\0';
                 png.size_m = png_size;
                 png.size_u = strlen(png.user_to_send);
