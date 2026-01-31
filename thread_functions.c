@@ -19,9 +19,46 @@
 #define username_length 50
 #define message_length 128
 
-//figure out why magic offsets work...
+char** parseGroupString(char message[username_length + message_length]) {
+    char** return_strings = malloc(2);
+    char* left = malloc(username_length);
+    char* right = malloc(message_length);
+    sscanf(message, "%[^:]: %[^\n]", left, right);
+    return_strings[0] = left;
+    return_strings[1] = right;
+    return return_strings;
+}
 
-//recieve all message packets sent from a user
+
+void sendAllGroupMessages(user *new_user) {
+    int type_of_message = ROOM_MSG;
+    char* directory_base = "logs/groups/";
+    for(size_t i = 0; i < MAXGROUPS; i++) {
+        char base_string[50];
+        snprintf(base_string, sizeof(base_string), "%sGroup %zu", directory_base, i);
+        FILE *fp = fopen(base_string, "r");
+
+        if (fp == NULL) { continue; }
+
+        char buf[username_length + message_length];
+
+        char group_name[50];
+
+        snprintf(group_name, sizeof(group_name), "Group %zu", i);
+
+        while (fgets(buf, sizeof(buf), fp)) {
+            char** string_split = parseGroupString(buf);
+            send(new_user->sockid, &type_of_message, sizeof(type_of_message), 0);
+            send(new_user->sockid, string_split[1], message_length, 0);
+            send(new_user->sockid, string_split[0], username_length, 0);
+            send(new_user->sockid, group_name, username_length, 0); // this is send full dir & not group name
+            free(string_split[0]);
+            free(string_split[1]);
+            free(string_split);
+        }
+    }
+}
+
 size_t recv_exact_msg(void* buf, size_t len, int sock) {
 	recieved_message* temp = (recieved_message*)buf;
 	size_t total = 0;
@@ -207,6 +244,9 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
     strncpy(message_to_send_group->groupName, a->user_to_send, a->size_u);
     strncpy(message_to_send_group->username, curr_user->curr->username, username_length);
 
+    message_to_send_group->username[a->size_u] = '\0';
+    message_to_send_group->arr[a->size_m] = '\0';
+
     for(size_t i = 0; i < MAXUSERS; i++) {
         if(t_map->m_userArr[i] == NULL) {continue;}
 
@@ -216,10 +256,6 @@ void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user,
 
         send(t_map->m_userArr[i]->sockid, message_to_send_group, size, 0);
     }
-
-    message_to_send_group->username[a->size_u] = '\0';
-    message_to_send_group->arr[a->size_m] = '\0';
-    int x = 5;
 
     write_to_file_group(message_to_send_group, threadArg->curr->username, threadArg->group_fileMutex);
 

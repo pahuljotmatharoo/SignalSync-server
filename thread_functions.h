@@ -21,6 +21,8 @@ void recv_exact_username(char* temp, size_t len, int sock);
 void recv_exact_png(char* temp, uint32_t len, int sock);
 void *create_connection(void *arg);
 void sendList(user_map* t_map);
+void sendAllGroupMessages(user *new_user);
+char** parseGroupString(char message[username_length + message_length]);
 void send_chatroom_list(ChatRoomList* chatroom_list, int sockid);
 void room_method_creation(user* temp, thread_arg* curr_user, int type_of_message, void* data, int size);
 void room_method_message(recieved_message* a, user* temp, thread_arg* curr_user, int type_of_message, void* data, int size, thread_arg* threadArg);

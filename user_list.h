@@ -3,6 +3,7 @@
 #include "user.h"
 #include <pthread.h>
 #define MAXUSERS 10
+#define MAXGROUPS 10
 
 typedef struct user_list {
     user *head;

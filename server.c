@@ -101,6 +101,8 @@ int main() {
 
         insertUser(user_Map, new_user);
 
+        sendAllGroupMessages(new_user);
+
         pthread_create(&new_user->id, NULL, create_connection, arg);
 
         pthread_detach(new_user->id);
