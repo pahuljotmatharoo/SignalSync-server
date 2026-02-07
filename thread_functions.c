@@ -119,7 +119,7 @@ void sendPng(recieved_png* msg, thread_arg* threadArg) {
     send(threadArg->user_Map->m_userArr[index]->sockid, &type_of_message, sizeof(type_of_message), 0);
 
     sendSize(msg->size_m,  threadArg, index);
-    sendAll(msg->arr, threadArg, index, msg->size_m); // idk why....
+    sendAll(msg->arr, threadArg, index, msg->size_m);
     sendUsername(threadArg->curr->username, index, threadArg);
     sendUsername(msg->filename_to_send, index, threadArg);
 }
@@ -338,9 +338,37 @@ void sendUserRemoval(thread_arg* threadArg) {
     }
 }
 
+void init_file_data_structure(recieved_png* png, uint32_t png_size) {
+    png->arr = malloc(png_size);
+    memset(png->arr, 0, png_size);
+}
+
+uint32_t recv_file_size(thread_arg* arg) {
+    uint32_t png_size = 0;
+    recv(arg->curr->sockid, &png_size, sizeof(uint32_t), 0);
+    return png_size;
+}
+
+void process_file(recieved_png* png, uint32_t png_size) {
+    png->user_to_send[49] = '\0';
+    png->size_m = png_size;
+    png->size_u = strlen(png->user_to_send);
+}
+
+void send_file(thread_arg* arg) {
+    uint32_t png_size = recv_file_size(arg);
+    recieved_png png;
+    init_file_data_structure(&png,png_size);
+    recv_exact_png(png.arr, png_size, arg->curr->sockid);
+    recv_exact_username(png.user_to_send, 50, arg->curr->sockid); // user to send to
+    recv_exact_username(png.filename_to_send, 50, arg->curr->sockid); // filename
+    process_file(&png, png_size);
+    sendPng(&png, arg);
+    free(png.arr);
+}
+
 void *create_connection(void *arg) {
-    //here we can initalize 
-        int n; 
+        int n;
         MsgHeader hdr;
 
         message_s *message_to_send = (message_s*) malloc(sizeof(message_s));
@@ -359,18 +387,16 @@ void *create_connection(void *arg) {
         printf("Connection Established!\n");
         printf("IP: %d \n", curr_user->curr->client.sin_addr.s_addr);
 
-        //so here, it will recieve, then execute based on the recieve, then continue again
         while((n = recv(current_user_socket, &hdr, sizeof(hdr), 0)) > 0) {
 
             uint32_t type   = ntohl(hdr.type);
             uint32_t length = ntohl(hdr.length);
 
-            //printf("Received: %d, %d\n", type, length);
-
             //the client is sending us information
             if(type == MSG_SEND) {
                 send_message_user(message_to_send, current_user_socket, curr_user);
             }
+
             else if(type == MSG_EXIT) {
                 printf("Closing Connection. \n");
                 break;
@@ -397,20 +423,7 @@ void *create_connection(void *arg) {
                 room_method_message(&a, curr_user->list_of_users->head, curr_user, ROOM_MSG, message_to_send_group, 228, curr_user);
             }
             else if(type == PNG_SEND) {
-                uint32_t png_size = 0;
-                recv(curr_user->curr->sockid, &png_size, sizeof(uint32_t), 0);
-                recieved_png png;
-                png.arr = malloc(png_size);
-                memset(png.arr, 0, png_size);
-                recv_exact_png(png.arr, png_size, curr_user->curr->sockid);
-                recv_exact_username(png.user_to_send, 50, curr_user->curr->sockid);
-                recv_exact_username(png.filename_to_send, 50, curr_user->curr->sockid);
-                png.user_to_send[49] = '\0';
-                png.size_m = png_size;
-                png.size_u = strlen(png.user_to_send);
-                sendPng(&png, curr_user);
-                free(png.arr);
-                printf("Done recv png \n");
+                send_file(curr_user);
             }
         }
 

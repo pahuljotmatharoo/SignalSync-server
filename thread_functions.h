@@ -34,5 +34,10 @@ char* setupFileStringUser(char *username, char* username_to_send);
 char* setupFileStringGroup(char* group);
 void sendUserRemoval(thread_arg* threadArg);
 void sendPng(recieved_png* msg, thread_arg* threadArg);
+void send_file(thread_arg* arg);
+void process_file(recieved_png* png, uint32_t png_size);
+uint32_t recv_file_size(thread_arg* arg);
+void init_file_data_structure(recieved_png* png, uint32_t png_size);
+
 
 #endif /* THREAD_FUNCTIONS_H */
